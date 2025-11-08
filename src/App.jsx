@@ -15,7 +15,7 @@ console.log("✅ LojistaEscolha importada:", !!LojistaEscolha);
 import LoginPage from "./pages/LoginPage";
 console.log("✅ LoginPage importada:", !!LoginPage);
 
-import ConsultantRegisterPage from "./pages/ConsultantRegisterPage";
+import { ConsultorRegister } from "./pages/ConsultorDashboard";
 console.log("✅ ConsultantRegisterPage importada:", !!ConsultantRegisterPage);
 
 import TermsPage from "./pages/TermsPage";
@@ -24,7 +24,7 @@ console.log("✅ TermsPage importada:", !!TermsPage);
 import AwaitingApproval from "./pages/AwaitingApproval";
 console.log("✅ AwaitingApproval importada:", !!AwaitingApproval);
 
-import Dashboard from "./pages/Dashboard";
+import { ConsultorDashboard } from "./pages/ConsultorDashboard";
 console.log("✅ Dashboard importada:", !!Dashboard);
 
 // === LOJISTA ===
@@ -79,7 +79,7 @@ import { AdminAprovacao } from "./pages/AdminDashboard";
 console.log("✅ AdminAprovacao importada:", !!AdminAprovacao);
 
 // === ATENDIMENTO/VENDAS ===
-import ChatPanel from "./pages/ChatPanel";
+import { ChatPanel } from "./pages/ConsultorDashboard";
 console.log("✅ ChatPanel importada:", !!ChatPanel);
 
 import ProductsPage from "./pages/ProductsPage";
@@ -136,9 +136,9 @@ function App() {
 
           {/* === CONSULTOR === */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<ConsultantRegisterPage />} />
+          <Route path="/register" element={<ConsultorRegister />} />
           <Route path="/aguardando-aprovacao" element={<AwaitingApproval />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ConsultorDashboard />} />
           <Route path="/termos" element={<TermsPage />} />
 
           {/* === LOJISTA === */}
