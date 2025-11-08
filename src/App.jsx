@@ -21,7 +21,7 @@ console.log("✅ ConsultantRegisterPage importada:", !!ConsultantRegisterPage);
 import TermsPage from "./pages/TermsPage";
 console.log("✅ TermsPage importada:", !!TermsPage);
 
-import AwaitingApproval from "./pages/AwaitingApproval"; // ⬅️ ESTAVA FALTANDO!
+import AwaitingApproval from "./pages/AwaitingApproval";
 console.log("✅ AwaitingApproval importada:", !!AwaitingApproval);
 
 import Dashboard from "./pages/Dashboard";
@@ -62,7 +62,7 @@ console.log("✅ VendedorDashboard importada:", !!VendedorDashboard);
 import VendedorRegisterPage from "./pages/VendedorRegisterPage";
 console.log("✅ VendedorRegisterPage importada:", !!VendedorRegisterPage);
 
-import VendedorLogin from "./pages/VendedorLogin"; // ⬅️ ADICIONADO!
+import VendedorLogin from "./pages/VendedorLogin";
 console.log("✅ VendedorLogin importada:", !!VendedorLogin);
 
 import AdminCadastroVendedor from "./pages/AdminCadastroVendedor";
@@ -74,6 +74,16 @@ console.log("✅ AdminDashboard importada:", !!AdminDashboard);
 
 import AdminAprovacao from "./pages/AdminAprovacao";
 console.log("✅ AdminAprovacao importada:", !!AdminAprovacao);
+
+// === ATENDIMENTO/VENDAS ===
+import ChatPanel from "./pages/ChatPanel";
+console.log("✅ ChatPanel importada:", !!ChatPanel);
+
+import ProductsPage from "./pages/ProductsPage";
+console.log("✅ ProductsPage importada:", !!ProductsPage);
+
+import ClientsPage from "./pages/ClientsPage";
+console.log("✅ ClientsPage importada:", !!ClientsPage);
 
 function App() {
   console.log("🎯 App component montado");
@@ -109,6 +119,12 @@ function App() {
           >
             Vendedor
           </a>
+          <a
+            href="/atendimento"
+            style={{ color: "white", margin: "0 10px" }}
+          >
+            Atendimento
+          </a>
         </nav>
 
         <Routes>
@@ -135,13 +151,19 @@ function App() {
           <Route path="/lojista/home" element={<LojistaHomePanel />} />
 
           {/* === VENDEDOR === */}
-          <Route path="/vendedor/login" element={<VendedorLogin />} /> {/* ⬅️ ADICIONADO! */}
+          <Route path="/vendedor/login" element={<VendedorLogin />} />
           <Route path="/vendedor/dashboard" element={<VendedorDashboard />} />
           <Route path="/vendedor/register" element={<VendedorRegisterPage />} />
           <Route
             path="/vendedor/cadastro"
             element={<AdminCadastroVendedor />}
           />
+
+          {/* === ATENDIMENTO/VENDAS === */}
+          <Route path="/atendimento" element={<ChatPanel />} />
+          <Route path="/chat" element={<ChatPanel />} />
+          <Route path="/produtos" element={<ProductsPage />} />
+          <Route path="/clientes" element={<ClientsPage />} />
 
           {/* === ADMIN === */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
