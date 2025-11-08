@@ -1,0 +1,4 @@
+codigo,nome,descricao,categoria,preco_custo,preco_venda,estoque,estoque_minimo,comissao,tamanho,cor,peso,sku,ncm,fornecedor,status
+PROD001,Smartphone Galaxy S23,Smartphone Android 128GB, Eletrônicos,700.00,899.90,50,5,10.0,,Preto,0.2,SKU123456,8517.12.10,Samsung,ativo
+PROD002,Notebook Dell Inspiron,Notebook 15.6" Intel i5,Informática,1000.00,1299.90,25,3,12.5,,Prata,2.1,SKU123457,8471.30.19,Dell,ativo
+PROD003,Fone Bluetooth,Fone sem fio cancelamento ruído,Acessórios,120.00,199.90,100,10,15.0,,Branco,0.15,SKU123458,8518.30.00,JBL,ativo
