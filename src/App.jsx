@@ -62,6 +62,9 @@ console.log("✅ VendedorDashboard importada:", !!VendedorDashboard);
 import VendedorRegisterPage from "./pages/VendedorRegisterPage";
 console.log("✅ VendedorRegisterPage importada:", !!VendedorRegisterPage);
 
+import VendedorLogin from "./pages/VendedorLogin"; // ⬅️ ADICIONADO!
+console.log("✅ VendedorLogin importada:", !!VendedorLogin);
+
 import AdminCadastroVendedor from "./pages/AdminCadastroVendedor";
 console.log("✅ AdminCadastroVendedor importada:", !!AdminCadastroVendedor);
 
@@ -100,6 +103,12 @@ function App() {
           >
             Lojista
           </a>
+          <a
+            href="/vendedor/login"
+            style={{ color: "white", margin: "0 10px" }}
+          >
+            Vendedor
+          </a>
         </nav>
 
         <Routes>
@@ -126,6 +135,7 @@ function App() {
           <Route path="/lojista/home" element={<LojistaHomePanel />} />
 
           {/* === VENDEDOR === */}
+          <Route path="/vendedor/login" element={<VendedorLogin />} /> {/* ⬅️ ADICIONADO! */}
           <Route path="/vendedor/dashboard" element={<VendedorDashboard />} />
           <Route path="/vendedor/register" element={<VendedorRegisterPage />} />
           <Route
