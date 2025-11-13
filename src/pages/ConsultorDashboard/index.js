@@ -1,9 +1,10 @@
+// src/pages/ConsultorDashboard/index.js
+
 // Exportações principais
-export { default as ConsultorDashboard } from './ConsultorDashboard';
+export { default as ConsultorDashboard } from './pages/Consultant/ConsultorDashboard';
 
 // Exportações de páginas
-export { default as ConsultorLogin } from './pages/Consultant/LoginPage';
-export { default as ConsultorRegister } from './pages/ConsultantRegisterPage';
+export { default as ConsultorRegister } from './pages/Consultant/ConsultorRegister';
 
 // Exportações de componentes
 export { default as AnalyticsPanel } from './components/AnalyticsPanel';
