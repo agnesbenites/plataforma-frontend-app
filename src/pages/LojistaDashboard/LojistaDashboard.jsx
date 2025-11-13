@@ -84,6 +84,20 @@ const LojistaDashboard = () => {
       estatistica: "12 relatórios disponíveis",
       rota: "/lojista/relatorios",
     },
+    {
+      id: "pagamentos",
+      title: "💳 Pagamentos",
+      description: "Gestão de faturas, boletos e dados de pagamento",
+      color: "#17a2b8",
+      features: [
+        "Faturas e notas fiscais",
+        "Boletos bancários", 
+        "Cartões criptografados",
+        "Histórico de pagamentos"
+      ],
+      estatistica: "Próxima fatura: 15/03/2024",
+      rota: "/lojista/pagamentos",
+    },
   ];
 
   // Alertas e notificações
@@ -271,6 +285,12 @@ const LojistaDashboard = () => {
         <div style={styles.quickActions}>
           <h3 style={styles.quickActionsTitle}>⚡ Ações Rápidas</h3>
           <div style={styles.actionsGrid}>
+            <button
+              style={styles.quickActionButton}
+              onClick={() => navigate("/lojista/pagamentos")}
+            >
+              💳 Gerenciar Pagamentos
+            </button>
             <button
               style={styles.quickActionButton}
               onClick={() => navigate("/lojista/produtos")}
