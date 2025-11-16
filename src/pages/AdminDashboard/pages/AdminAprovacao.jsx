@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled, { css } from "styled-components";
-import api from "../api/axiosConfig";
+import api from "../../../api/axiosConfig";
 
 // --- DADOS MOCKADOS INICIAIS (Mantidos) ---
 const initialMockData = {

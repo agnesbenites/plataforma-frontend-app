@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import RotatingBanner from "./components/RotatingBanner";
+import RotatingBanner from "../components/RotatingBanner";
 
 // --- ESTILOS COMPARTILHADOS (Minimalista) ---
 const PRIMARY_COLOR = "#007bff";
