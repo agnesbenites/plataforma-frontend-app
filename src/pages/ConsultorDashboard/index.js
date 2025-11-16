@@ -1,6 +1,6 @@
-﻿// Exportações do ConsultorDashboard
-export { default as ConsultorDashboard } from './pages/ConsultorDashboard';
-export { default as ConsultorRegister } from './pages/Consultant/ConsultorRegister';
+﻿// Exportações do ConsultorDashboard - CORRIGIDO
+export { default as ConsultorDashboard } from './ConsultorDashboard';
+export { default as ConsultorRegister } from '../Consultant/ConsultorRegister';
 export { default as ChatPanel } from './components/ChatPanel';
 export { default as AnalyticsPanel } from './components/AnalyticsPanel';
 export { default as ApprovalCard } from './components/ApprovalCard';
