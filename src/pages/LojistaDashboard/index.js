@@ -1,19 +1,11 @@
-// src/pages/LojistaDashboard/index.js
-
-// Re-exporta todos os componentes nomeados de cada arquivo .jsx
-// Este é o método mais robusto quando se usam Named Exports (export const Nome)
-
-export { LojistaDashboard } from "./pages/LojistaDashboard";
-export { LojistaEscolha } from "./pages/LojistaEscolha";
-export { LojistaFiliais } from "./pages/LojistaFiliais";
-export { LojistaHomePanel } from "./pages/LojistaHomePanel";
-export { LojistaPagamentos } from "./pages/LojistaPagamentos";
-export { LojistaProducts } from "./pages/LojistaProducts";
-export { LojistaQRCode } from "./pages/LojistaQRCode";
-export { LojistaRelatorios } from "./pages/LojistaRelatorios";
-export { LojistaUsuarios } from "./pages/LojistaUsuarios";
-export { LojistaVendedores } from "./pages/LojistaVendedores";
-
-// Se o seu LojistaDashboard.jsx também contiver os mocks de outros componentes,
-// certifique-se de que os arquivos individuais (como LojistaQRCode.jsx)
-// exportam algo, ou que o LojistaDashboard.jsx seja o único a exportá-los.
+// Exportações do LojistaDashboard - DEFAULT EXPORTS
+export { default as LojistaDashboard } from './pages/LojistaDashboard.jsx';
+export { default as LojistaEscolha } from './pages/LojistaEscolha.jsx';
+export { default as LojistaFiliais } from './pages/LojistaFiliais.jsx';
+export { default as LojistaHomePanel } from './pages/LojistaHomePanel.jsx';
+export { default as LojistaPagamentos } from './pages/LojistaPagamentos.jsx';
+export { default as LojistaProducts } from './pages/LojistaProducts.jsx';
+export { default as LojistaQRCode } from './pages/LojistaQRCode.jsx';
+export { default as LojistaRelatorios } from './pages/LojistaRelatorios.jsx';
+export { default as LojistaUsuarios } from './pages/LojistaUsuarios.jsx';
+export { default as LojistaVendedores } from './pages/LojistaVendedores.jsx';
