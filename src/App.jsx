@@ -24,7 +24,7 @@ console.log("✅ AwaitingApproval importada:", !!AwaitingApproval);
 import { ConsultorDashboard } from "./pages/ConsultorDashboard";
 console.log("✅ ConsultorDashboard importada:", !!ConsultorDashboard);
 
-// === LOJISTA - IMPORTS DIRETOS (SEM INDEX PROBLEMÁTICO) ===
+// === LOJISTA - IMPORTS DIRETOS ===
 import { LojistaDashboard } from "./pages/LojistaDashboard/pages/LojistaDashboard.jsx";
 console.log("✅ LojistaDashboard importada:", !!LojistaDashboard);
 
@@ -154,20 +154,15 @@ function App() {
           <Route path="/produtos" element={<ProductsPage />} />
           <Route path="/clientes" element={<ClientsPage />} />
 
-          {/* === LOJISTA (COM ROTAS ANINHADAS CORRIGIDAS) === */}
+          {/* === LOJISTA (ROTAS ANINHADAS QUE FUNCIONAVAM) === */}
           
           {/* Rotas de Login e Escolha (FORA do layout principal) */}
           <Route path="/lojista/escolha" element={<LojistaEscolha />} />
           <Route path="/lojista/login" element={<AdminLogin />} />
 
-          {/* ROTA ESPECIAL PARA O REDIRECIONAMENTO DO LOGIN */}
-          <Route path="/lojista/dashboard" element={<LojistaDashboard />}>
-            <Route index element={<LojistaHomePanel />} />
-          </Route>
-
-          {/* ROTA PAI: LojistaDashboard é agora o layout/wrapper */}
+          {/* ROTA PAI: LojistaDashboard é o layout/wrapper */}
           <Route path="/lojista" element={<LojistaDashboard />}>
-            {/* Rota Padrão: /lojista (que deve mostrar o Home Panel) */}
+            {/* Rota Padrão: /lojista mostra o Home Panel */}
             <Route index element={<LojistaHomePanel />} />
 
             {/* Sub-Rotas do Layout (path é relativo a /lojista) */}
@@ -177,10 +172,14 @@ function App() {
             <Route path="filiais" element={<LojistaFiliais />} />
             <Route path="qrcodes" element={<LojistaQRCode />} />
             <Route path="cadastro" element={<LojistaCadastro />} />
-            {/* Mantive o /lojista/home, mas ele aponta para a mesma página principal */}
-            <Route path="home" element={<LojistaHomePanel />} /> 
+            <Route path="home" element={<LojistaHomePanel />} />
             <Route path="pagamentos" element={<LojistaPagamentos />} />
             <Route path="relatorios" element={<LojistaRelatorios />} />
+          </Route>
+
+          {/* ROTA ESPECIAL para redirecionamento do login */}
+          <Route path="/lojista/dashboard" element={<LojistaDashboard />}>
+            <Route index element={<LojistaHomePanel />} />
           </Route>
 
           {/* === VENDEDOR === */}
