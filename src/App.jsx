@@ -170,7 +170,7 @@ function App() {
             <Route path="usuarios" element={<LojistaUsuarios />} />
             <Route path="vendedores" element={<LojistaVendedores />} />
             <Route path="filiais" element={<LojistaFiliais />} />
-            <Route path="qrcode" element={<LojistaQRCode />} />
+            <Route path="qrcodes" element={<LojistaQRCode />} />
             <Route path="cadastro" element={<LojistaCadastro />} />
             {/* Mantive o /lojista/home, mas ele aponta para a mesma página principal */}
             <Route path="home" element={<LojistaHomePanel />} /> 
