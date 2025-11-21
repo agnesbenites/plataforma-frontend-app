@@ -118,7 +118,7 @@ function App() {
             Login
           </a>
           <a
-            href="/lojista/escolha"
+            href="/lojista"
             style={{ color: "white", margin: "0 10px" }}
           >
             Lojista
@@ -154,29 +154,25 @@ function App() {
           <Route path="/produtos" element={<ProductsPage />} />
           <Route path="/clientes" element={<ClientsPage />} />
 
-          {/* === LOJISTA (REESCRITO COM ROTAS ANINHADAS) === */}
+          {/* === LOJISTA (SIMPLIFICADO - SEM ROTAS ANINHADAS) === */}
           
-          {/* Rotas de Login e Escolha (FORA do layout principal) */}
+          {/* Rotas de Login e Escolha */}
           <Route path="/lojista/escolha" element={<LojistaEscolha />} />
           <Route path="/lojista/login" element={<AdminLogin />} />
 
-          {/* ROTA PAI: LojistaDashboard é agora o layout/wrapper */}
-          <Route path="/lojista" element={<LojistaDashboard />}>
-            {/* Rota Padrão: /lojista (que deve mostrar o Home Panel) */}
-            <Route index element={<LojistaHomePanel />} />
+          {/* ROTA PRINCIPAL DO LOJISTA - AGORA FUNCIONANDO! */}
+          <Route path="/lojista" element={<LojistaDashboard />} />
 
-            {/* Sub-Rotas do Layout (path é relativo a /lojista) */}
-            <Route path="produtos" element={<LojistaProducts />} />
-            <Route path="usuarios" element={<LojistaUsuarios />} />
-            <Route path="vendedores" element={<LojistaVendedores />} />
-            <Route path="filiais" element={<LojistaFiliais />} />
-            <Route path="qrcodes" element={<LojistaQRCode />} />
-            <Route path="cadastro" element={<LojistaCadastro />} />
-            {/* Mantive o /lojista/home, mas ele aponta para a mesma página principal */}
-            <Route path="home" element={<LojistaHomePanel />} /> 
-            <Route path="pagamentos" element={<LojistaPagamentos />} />
-            <Route path="relatorios" element={<LojistaRelatorios />} />
-          </Route>
+          {/* ROTAS INDIVIDUAIS DO LOJISTA (SEM ANINHAMENTO) */}
+          <Route path="/lojista/produtos" element={<LojistaProducts />} />
+          <Route path="/lojista/usuarios" element={<LojistaUsuarios />} />
+          <Route path="/lojista/vendedores" element={<LojistaVendedores />} />
+          <Route path="/lojista/filiais" element={<LojistaFiliais />} />
+          <Route path="/lojista/qrcodes" element={<LojistaQRCode />} />
+          <Route path="/lojista/cadastro" element={<LojistaCadastro />} />
+          <Route path="/lojista/home" element={<LojistaHomePanel />} />
+          <Route path="/lojista/pagamentos" element={<LojistaPagamentos />} />
+          <Route path="/lojista/relatorios" element={<LojistaRelatorios />} />
 
           {/* === VENDEDOR === */}
           <Route path="/vendedor/login" element={<VendedorLogin />} />
