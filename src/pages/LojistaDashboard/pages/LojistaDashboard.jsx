@@ -11,9 +11,9 @@ const menuItems = [
     { title: "👥 Usuários", rota: "/lojista/usuarios" },
     { title: "💼 Vendedores", rota: "/lojista/vendedores" },
     { title: "🏪 Filiais", rota: "/lojista/filiais" },
-    { title: "🔳 QR Codes", rota: "/lojista/qrcode" }, // Rota problemática corrigida
+    { title: "🔳 QR Codes", rota: "/lojista/qrcodes" }, // CORRIGIDO: qrcode → qrcodes
     { title: "💳 Pagamentos", rota: "/lojista/pagamentos" },
-    { title: "📊 Relatórios", rota: "/lojista/relatorios" }, // Rota problemática corrigida
+    { title: "📊 Relatórios", rota: "/lojista/relatorios" },
     { title: "⚙️ Cadastro", rota: "/lojista/cadastro" },
 ];
 
@@ -80,22 +80,18 @@ const styles = {
     },
 };
 
-
 // === EXPORTS ORIGINAIS ===
-// Mantemos todos os exports originais para não quebrar o App.jsx
-// OBS: Se você já tem os arquivos REAIS para QRCODE, RELATORIOS, etc., você pode remover os exports MOCKADOS daqui.
-
-// 1. Export principal (Layout)
+// Export principal (Layout)
 export const LojistaDashboard = LojistaDashboardLayout;
 
-// 2. Export LojistaEscolha (Geralmente fora do Layout)
+// Export LojistaEscolha (Geralmente fora do Layout)
 export const LojistaEscolha = () => (
     <div style={{ padding: "50px", textAlign: "center", color: '#333' }}>
         <h1>✅ Lojista Escolha</h1>
     </div>
 );
 
-// 3. Outros Exports (Mantidos MOCKADOS, a menos que você tenha movido para outros arquivos)
+// Outros Exports (APENAS OS QUE NÃO TEM ARQUIVOS SEPARADOS)
 export const LojistaProducts = () => (
     <div style={{ padding: "50px", textAlign: "center", color: '#333' }}>
         <h1>📦 Produtos do Lojista</h1>
@@ -116,11 +112,6 @@ export const LojistaFiliais = () => (
         <h1>🏪 Filiais do Lojista</h1>
     </div>
 );
-export const LojistaQRCode = () => (
-    <div style={{ padding: "50px", textAlign: "center", color: '#333' }}>
-        <h1>🔳 Página de QR Codes! 🎉</h1>
-    </div>
-);
 export const LojistaCadastro = () => (
     <div style={{ padding: "50px", textAlign: "center", color: '#333' }}>
         <h1>⚙️ Cadastro do Lojista</h1>
@@ -131,11 +122,9 @@ export const LojistaPagamentos = () => (
         <h1>💳 Pagamentos do Lojista</h1>
     </div>
 );
-export const LojistaRelatorios = () => (
-    <div style={{ padding: "50px", textAlign: "center", color: '#333' }}>
-        <h1>📊 Página de Relatórios! 📈</h1>
-    </div>
-);
 
-// Se houver um export default, mantenha-o (pode ser necessário, dependendo de como você importa)
+// ⚠️ REMOVIDOS: LojistaQRCode e LojistaRelatorios mockados
+// Estes agora são importados de arquivos separados no App.jsx
+
+// Se houver um export default, mantenha-o
 // export default LojistaDashboardLayout;
