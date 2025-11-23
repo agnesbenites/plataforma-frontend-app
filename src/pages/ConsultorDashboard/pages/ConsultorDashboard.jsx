@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import RotatingBanner from "../components/RotatingBanner";
+import RotatingBanner from "../../components/RotatingBanner";
 
 // --- ESTILOS COMPARTILHADOS (Minimalista) ---
 const PRIMARY_COLOR = "#007bff";
@@ -177,7 +177,7 @@ const ConsultorDashboard = () => {
 
   return (
     <div style={styles.appContainer}>
-      {/* Menu Lateral Compacto (IDÊNTICO AO ANALYTICS) */}
+      {/* Menu Lateral Compacto */}
       <nav style={styles.sidebar}>
         <div style={styles.sidebarContent}>
           {/* Botão Home (Ativo) */}
@@ -187,7 +187,7 @@ const ConsultorDashboard = () => {
           </div>
           {/* Botão Chat */}
           <button
-            onClick={() => navigate("/chat")}
+            onClick={() => navigate("/consultor/chat")}
             style={styles.sidebarButton}
           >
             <span style={styles.sidebarIcon}>💬</span>
@@ -195,7 +195,7 @@ const ConsultorDashboard = () => {
           </button>
           {/* Botão Analytics */}
           <button
-            onClick={() => navigate("/analytics")}
+            onClick={() => navigate("/consultor/analytics")}
             style={styles.sidebarButton}
           >
             <span style={styles.sidebarIcon}>📊</span>
@@ -203,7 +203,7 @@ const ConsultorDashboard = () => {
           </button>
           {/* Botão Perfil */}
           <button
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/consultor/profile")}
             style={styles.sidebarButton}
           >
             <span style={styles.sidebarIcon}>👤</span>
@@ -213,11 +213,11 @@ const ConsultorDashboard = () => {
       </nav>
 
       <main style={styles.mainContent}>
-        {/* Header Superior com Perfil (IDÊNTICO AO ANALYTICS) */}
+        {/* Header Superior com Perfil */}
         <header style={styles.header}>
           <h1 style={styles.headerTitle}>Bem-vindo(a), {userName}!</h1>
           <button
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/consultor/profile")}
             style={styles.profileLink}
           >
             <span style={styles.profileName}>{userName}</span>

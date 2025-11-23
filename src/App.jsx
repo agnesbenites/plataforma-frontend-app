@@ -5,6 +5,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 
+// === CONSULTOR ===
+import ConsultorDashboard from "./pages/ConsultorDashboard/ConsultorDashboard";
+
 // === LOJISTA ===
 import { LojistaDashboard } from "./pages/LojistaDashboard/pages/LojistaDashboard.jsx";
 import LojistaHomePanel from "./pages/LojistaDashboard/pages/LojistaHomePanel.jsx";
@@ -20,36 +23,41 @@ import LojistaRelatorios from "./pages/LojistaDashboard/pages/LojistaRelatorios.
 import VendedorDashboard from "./pages/VendedorDashboard/pages/VendedorDashboard.jsx";
 
 function App() {
-  // Função para detectar o tipo de usuário baseado na rota
   const getNavigationMenu = () => {
     const path = window.location.pathname;
     
     if (path.includes('/vendedor')) {
-      // MENU VENDEDOR (BÁSICO)
       return (
         <>
           <a href="/vendedor/dashboard" style={{ color: "white", margin: "0 10px" }}>🏠 Home</a>
           <a href="/lojista" style={{ color: "white", margin: "0 10px" }}>🏪 Lojista</a>
-          <a href="/" style={{ color: "white", margin: "0 10px" }}>🔍 Consultor</a>
+          <a href="/consultor/dashboard" style={{ color: "white", margin: "0 10px" }}>🔍 Consultor</a>
         </>
       );
     } else if (path.includes('/lojista')) {
-      // MENU LOJISTA
       return (
         <>
           <a href="/lojista" style={{ color: "white", margin: "0 10px" }}>🏠 Home</a>
           <a href="/vendedor/dashboard" style={{ color: "white", margin: "0 10px" }}>💼 Vendedor</a>
-          <a href="/" style={{ color: "white", margin: "0 10px" }}>🔍 Consultor</a>
+          <a href="/consultor/dashboard" style={{ color: "white", margin: "0 10px" }}>🔍 Consultor</a>
+        </>
+      );
+    } else if (path.includes('/consultor')) {
+      return (
+        <>
+          <a href="/consultor/dashboard" style={{ color: "white", margin: "0 10px" }}>🏠 Dashboard</a>
+          <a href="/lojista" style={{ color: "white", margin: "0 10px" }}>🏪 Lojista</a>
+          <a href="/vendedor/dashboard" style={{ color: "white", margin: "0 10px" }}>💼 Vendedor</a>
         </>
       );
     } else {
-      // MENU CONSULTOR (COMPLETO)
       return (
         <>
           <a href="/" style={{ color: "white", margin: "0 10px" }}>🏠 Home</a>
           <a href="/login" style={{ color: "white", margin: "0 10px" }}>🔐 Login</a>
           <a href="/lojista" style={{ color: "white", margin: "0 10px" }}>🏪 Lojista</a>
           <a href="/vendedor/dashboard" style={{ color: "white", margin: "0 10px" }}>💼 Vendedor</a>
+          <a href="/consultor/dashboard" style={{ color: "white", margin: "0 10px" }}>🔍 Consultor</a>
         </>
       );
     }
@@ -67,6 +75,9 @@ function App() {
           {/* HOME */}
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
+
+          {/* CONSULTOR - ROTA CORRIGIDA */}
+          <Route path="/consultor/dashboard" element={<ConsultorDashboard />} />
 
           {/* LOJISTA - ROTAS ANINHADAS */}
           <Route path="/lojista" element={<LojistaDashboard />}>
