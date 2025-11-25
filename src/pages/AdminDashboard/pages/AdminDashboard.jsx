@@ -1,6 +1,10 @@
 // src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNotifications } from "../../../contexts/NotificationContext";
+import NotificationBell from "../../../components/NotificationBell";
+import NotificationSender from "../../../components/NotificationSender";
+
 
 // Componentes do Dashboard
 const StatCard = ({ title, value, icon, color, trend }) => (
@@ -95,11 +99,13 @@ const ClientTable = ({ clients, onViewDetails }) => (
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState("overview");
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
-  // Dados mockados (depois virão do Supabase)
+  // Dados mockados
   const mockData = {
     stats: {
       totalClients: 45,
@@ -152,17 +158,44 @@ const AdminDashboard = () => {
     setTimeout(() => {
       setClients(mockData.clients);
       setLoading(false);
+      
+      // Adicionar notificação de boas-vindas
+      addNotification({
+        titulo: 'Bem-vindo ao Dashboard! 🎉',
+        mensagem: 'Sistema administrativo carregado com sucesso.',
+        tipo: 'success'
+      });
     }, 1000);
-  }, []);
+  }, [addNotification]);
 
   const handleViewDetails = (client) => {
-    // Navegar para página de detalhes do cliente
     console.log("Ver detalhes:", client);
     // navigate(`/admin/clientes/${client.id}`);
   };
 
   const handleAddClient = () => {
     navigate("/admin/cadastro-cliente");
+  };
+
+  const handleSendBroadcastNotification = (notificationData) => {
+    // Notificar o admin que a mensagem foi enviada
+    addNotification({
+      titulo: '📤 Comunicado Enviado',
+      mensagem: `Sua mensagem foi enviada para ${notificationData.destinatarios.join(', ')}`,
+      tipo: 'success'
+    });
+
+    // Aqui você pode integrar com sua API para enviar para outros usuários
+    console.log('Enviando notificação para:', notificationData);
+  };
+
+  const handleExpiringTrialAlert = () => {
+    addNotification({
+      titulo: '⏰ Trial Expirando',
+      mensagem: 'Pedro Oliveira tem 2 dias restantes no trial',
+      tipo: 'warning',
+      destinatario: 'admin'
+    });
   };
 
   if (loading) {
@@ -176,7 +209,7 @@ const AdminDashboard = () => {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
+      {/* Header Atualizado com Notificações */}
       <div style={styles.header}>
         <div style={styles.headerContent}>
           <div style={styles.headerTitle}>
@@ -184,6 +217,17 @@ const AdminDashboard = () => {
             <p>Gestão completa de clientes e trials</p>
           </div>
           <div style={styles.headerActions}>
+            {/* Bell de Notificações */}
+            <NotificationBell />
+            
+            {/* Botão para enviar notificações */}
+            <button 
+              onClick={() => setShowNotificationModal(true)}
+              style={styles.notificationButton}
+            >
+              📢 Enviar Comunicado
+            </button>
+            
             <button style={styles.primaryButton} onClick={handleAddClient}>
               ➕ Novo Cliente
             </button>
@@ -217,6 +261,12 @@ const AdminDashboard = () => {
           onClick={() => setActiveTab("reports")}
         >
           📈 Relatórios
+        </button>
+        <button
+          style={activeTab === "notifications" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("notifications")}
+        >
+          🔔 Notificações
         </button>
       </div>
 
@@ -299,6 +349,12 @@ const AdminDashboard = () => {
                     <div>
                       <strong>Trial expirando</strong>
                       <p>Pedro Oliveira - 2 dias atrás</p>
+                      <button 
+                        onClick={handleExpiringTrialAlert}
+                        style={styles.smallButton}
+                      >
+                        Notificar
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -339,7 +395,20 @@ const AdminDashboard = () => {
           <div style={styles.tabContent}>
             <h2>⏰ Gestão de Trials</h2>
             <p>Controle de períodos de teste e expirações</p>
-            {/* Conteúdo específico de trials */}
+            <div style={styles.trialStats}>
+              <div style={styles.trialCard}>
+                <h4>Trials Ativos</h4>
+                <p style={styles.trialNumber}>12</p>
+              </div>
+              <div style={styles.trialCard}>
+                <h4>Expirando esta semana</h4>
+                <p style={styles.trialNumberWarning}>3</p>
+              </div>
+              <div style={styles.trialCard}>
+                <h4>Conversões</h4>
+                <p style={styles.trialNumberSuccess}>8</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -347,10 +416,74 @@ const AdminDashboard = () => {
           <div style={styles.tabContent}>
             <h2>📈 Relatórios e Analytics</h2>
             <p>Relatórios detalhados de performance</p>
-            {/* Conteúdo de relatórios */}
+            <div style={styles.reportsGrid}>
+              <div style={styles.reportCard}>
+                <h4>📊 Relatório de Conversão</h4>
+                <p>Taxa de conversão de trials: 45%</p>
+              </div>
+              <div style={styles.reportCard}>
+                <h4>💰 Receita Mensal</h4>
+                <p>R$ 8.240,00</p>
+              </div>
+              <div style={styles.reportCard}>
+                <h4>👥 Retenção de Clientes</h4>
+                <p>Taxa de 92%</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "notifications" && (
+          <div style={styles.tabContent}>
+            <h2>🔔 Centro de Notificações</h2>
+            <p>Gerencie e envie notificações para seus usuários</p>
+            
+            <div style={styles.notificationControls}>
+              <button 
+                onClick={() => setShowNotificationModal(true)}
+                style={styles.primaryButton}
+              >
+                📢 Enviar Novo Comunicado
+              </button>
+              
+              <div style={styles.quickActions}>
+                <h4>Ações Rápidas:</h4>
+                <button 
+                  onClick={() => {
+                    addNotification({
+                      titulo: '🆕 Nova Atualização',
+                      mensagem: 'Sistema atualizado com novas funcionalidades',
+                      tipo: 'info'
+                    });
+                  }}
+                  style={styles.quickButton}
+                >
+                  Anunciar Atualização
+                </button>
+                <button 
+                  onClick={() => {
+                    addNotification({
+                      titulo: '🔧 Manutenção Programada',
+                      mensagem: 'Sistema ficará offline domingo às 02:00',
+                      tipo: 'warning'
+                    });
+                  }}
+                  style={styles.quickButton}
+                >
+                  Aviso de Manutenção
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Modal de Envio de Notificações */}
+      <NotificationSender 
+        show={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        onSend={handleSendBroadcastNotification}
+      />
     </div>
   );
 };
@@ -402,6 +535,16 @@ const styles = {
   headerActions: {
     display: "flex",
     gap: "15px",
+    alignItems: "center",
+  },
+  notificationButton: {
+    padding: "12px 20px",
+    backgroundColor: "#17a2b8",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "bold",
   },
   primaryButton: {
     padding: "12px 20px",
@@ -475,6 +618,12 @@ const styles = {
       color: "#666",
       fontWeight: "normal",
     },
+  },
+  statTitle: {
+    margin: "0 0 8px 0",
+    fontSize: "14px",
+    color: "#666",
+    fontWeight: "normal",
   },
   statValue: {
     margin: "0 0 5px 0",
@@ -560,6 +709,16 @@ const styles = {
   },
   activityIcon: {
     fontSize: "20px",
+  },
+  smallButton: {
+    padding: "4px 8px",
+    backgroundColor: "#007bff",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "12px",
+    marginTop: "5px",
   },
   tabContent: {
     backgroundColor: "white",
@@ -657,6 +816,70 @@ const styles = {
     borderRadius: "4px",
     cursor: "pointer",
     fontSize: "12px",
+  },
+  trialStats: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "20px",
+    marginTop: "20px",
+  },
+  trialCard: {
+    backgroundColor: "#f8f9fa",
+    padding: "20px",
+    borderRadius: "8px",
+    textAlign: "center",
+  },
+  trialNumber: {
+    fontSize: "32px",
+    fontWeight: "bold",
+    color: "#007bff",
+    margin: "10px 0 0 0",
+  },
+  trialNumberWarning: {
+    fontSize: "32px",
+    fontWeight: "bold",
+    color: "#ffc107",
+    margin: "10px 0 0 0",
+  },
+  trialNumberSuccess: {
+    fontSize: "32px",
+    fontWeight: "bold",
+    color: "#28a745",
+    margin: "10px 0 0 0",
+  },
+  reportsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: "20px",
+    marginTop: "20px",
+  },
+  reportCard: {
+    backgroundColor: "#f8f9fa",
+    padding: "20px",
+    borderRadius: "8px",
+    borderLeft: "4px solid #007bff",
+  },
+  notificationControls: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    marginTop: "20px",
+  },
+  quickActions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  quickButton: {
+    padding: "10px 15px",
+    backgroundColor: "#17a2b8",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "14px",
+    width: "200px",
+    textAlign: "left",
   },
 };
 

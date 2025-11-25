@@ -1,6 +1,5 @@
-// src/pages/LojistaHomePanel.jsx
-
 import React from "react";
+// Mantenha o useNavigate e Link para a navegação interna
 import { useNavigate, Link } from "react-router-dom";
 
 const LojistaHomePanel = () => {
@@ -25,7 +24,7 @@ const LojistaHomePanel = () => {
         metaAtingida: 85,
     };
 
-    // Módulos do sistema
+    // Módulos do sistema (ROTAS CORRIGIDAS)
     const modules = [
         {
             id: "filiais",
@@ -38,7 +37,7 @@ const LojistaHomePanel = () => {
                 "Limites por plano",
             ],
             estatistica: "3 filiais ativas",
-            rota: "/lojista/filiais",
+            rota: "/lojista/dashboard/filiais", // CORRIGIDO
         },
         {
             id: "produtos",
@@ -47,7 +46,7 @@ const LojistaHomePanel = () => {
             color: "#28a745",
             features: ["Categorias", "Estoque", "Preços", "Comissões"],
             estatistica: "128 produtos ativos",
-            rota: "/lojista/produtos",
+            rota: "/lojista/dashboard/produtos", // CORRIGIDO
         },
         {
             id: "qrcode",
@@ -56,7 +55,7 @@ const LojistaHomePanel = () => {
             color: "#6f42c1",
             features: ["QR por seção", "Rastreamento", "Relatórios"],
             estatistica: "15 QR Codes gerados",
-            rota: "/lojista/qrcode",
+            rota: "/lojista/dashboard/qrcode", // CORRIGIDO
         },
         {
             id: "usuarios",
@@ -65,7 +64,7 @@ const LojistaHomePanel = () => {
             color: "#fd7e14",
             features: ["Permissões", "Visualizadores", "Gerentes"],
             estatistica: "8 usuários ativos",
-            rota: "/lojista/usuarios",
+            rota: "/lojista/dashboard/usuarios", // CORRIGIDO
         },
         {
             id: "vendedores",
@@ -74,7 +73,7 @@ const LojistaHomePanel = () => {
             color: "#e83e8c",
             features: ["Cadastro", "Matrículas", "Dashboard simples"],
             estatistica: "5 vendedores ativos",
-            rota: "/lojista/vendedores",
+            rota: "/lojista/dashboard/vendedores", // CORRIGIDO
         },
         {
             id: "relatorios",
@@ -83,7 +82,7 @@ const LojistaHomePanel = () => {
             color: "#20c997",
             features: ["Vendas", "Comissões", "Performance", "Metas"],
             estatistica: "12 relatórios disponíveis",
-            rota: "/lojista/relatorios",
+            rota: "/lojista/dashboard/relatorios", // CORRIGIDO
         },
         {
             id: "pagamentos",
@@ -97,7 +96,7 @@ const LojistaHomePanel = () => {
                 "Histórico de pagamentos"
             ],
             estatistica: "Próxima fatura: 15/03/2024",
-            rota: "/lojista/pagamentos",
+            rota: "/lojista/dashboard/pagamentos", // CORRIGIDO
         },
     ];
 
@@ -136,12 +135,12 @@ const LojistaHomePanel = () => {
                         {lojistaInfo.empresa} • Plano {lojistaInfo.plano}
                     </p>
                     <div style={styles.statusBar}>
-                        <Link to="/lojista/pagamentos" style={{textDecoration: 'none'}}>
+                        <Link to="/lojista/dashboard/pagamentos" style={{textDecoration: 'none'}}>
                             <div style={styles.statusAtivoClicavel}>
                                 ✅ Conta Ativa
                             </div>
                         </Link>
-                        <Link to="/lojista/pagamentos" style={{textDecoration: 'none'}}>
+                        <Link to="/lojista/dashboard/pagamentos" style={{textDecoration: 'none'}}>
                             <div style={styles.vencimentoClicavel}>
                                 📅 Vencimento: {lojistaInfo.vencimento}
                             </div>
@@ -208,7 +207,7 @@ const LojistaHomePanel = () => {
                                 borderLeft: `4px solid ${module.color}`,
                                 background: `linear-gradient(135deg, ${module.color}10, ${module.color}05)`,
                             }}
-                            // AQUI É USADA A ROTA RELATIVA (ex: /lojista/qrcode)
+                            // AQUI É USADA A ROTA ABSOLUTA CORRETA
                             onClick={() => navigate(module.rota)} 
                         >
                             <div style={styles.moduleHeader}>
@@ -295,31 +294,31 @@ const LojistaHomePanel = () => {
                     <div style={styles.actionsGrid}>
                         <button
                             style={styles.quickActionButton}
-                            onClick={() => navigate("/lojista/pagamentos")}
+                            onClick={() => navigate("/lojista/dashboard/pagamentos")} // CORRIGIDO
                         >
                             💳 Gerenciar Pagamentos
                         </button>
                         <button
                             style={styles.quickActionButton}
-                            onClick={() => navigate("/lojista/produtos")}
+                            onClick={() => navigate("/lojista/dashboard/produtos")} // CORRIGIDO
                         >
                             ➕ Adicionar Produto
                         </button>
                         <button
                             style={styles.quickActionButton}
-                            onClick={() => navigate("/lojista/qrcode")}
+                            onClick={() => navigate("/lojista/dashboard/qrcode")} // CORRIGIDO
                         >
                             🔳 Gerar QR Code
                         </button>
                         <button
                             style={styles.quickActionButton}
-                            onClick={() => navigate("/lojista/vendedores")}
+                            onClick={() => navigate("/lojista/dashboard/vendedores")} // CORRIGIDO
                         >
                             💼 Cadastrar Vendedor
                         </button>
                         <button
                             style={styles.quickActionButton}
-                            onClick={() => navigate("/lojista/relatorios")}
+                            onClick={() => navigate("/lojista/dashboard/relatorios")} // CORRIGIDO
                         >
                             📊 Ver Relatórios
                         </button>

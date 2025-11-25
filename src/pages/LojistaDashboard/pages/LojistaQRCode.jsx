@@ -1,737 +1,398 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+
+// Dados mockados de QR Codes gerados
+// CORREÇÃO: Usando IDs e adicionando saleValue (valor simulado da venda)
+const MOCK_QRS = [
+    { id: 'QR-001-A', source: 'Vendedor', department: 'Eletrodomésticos', status: 'Ativo', creator: 'VEND-202', saleValue: 4899.00 }, 
+    { id: 'QR-002-C', source: 'Consultor', department: 'Móveis', status: 'Ativo', creator: 'CONS-101', saleValue: 1250.50 }, // ID do Consultor
+    { id: 'QR-003-A', source: 'Vendedor', department: 'Cama/Banho', status: 'Inativo', creator: 'VEND-208', saleValue: 0.00 },
+    { id: 'QR-004-C', source: 'Consultor', department: 'Tecnologia', status: 'Ativo', creator: 'CONS-105', saleValue: 8200.00 }, // ID do Consultor
+    { id: 'QR-005-A', source: 'Lojista', department: 'Geral', status: 'Ativo', creator: 'Agnes Lojista', saleValue: 349.90 },
+];
+
+const DEPARTMENTS = [
+    'Eletrodomésticos',
+    'Móveis',
+    'Tecnologia',
+    'Cama/Banho',
+    'Geral',
+];
 
 const LojistaQRCode = () => {
-  const [produtosSelecionados, setProdutosSelecionados] = useState([]);
-  const [consultorSelecionado, setConsultorSelecionado] = useState('');
-  const [qrCodeGerado, setQrCodeGerado] = useState(null);
-  const [loading, setLoading] = useState(false);
+    const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
+    const [generatedLink, setGeneratedLink] = useState('');
+    // NOVO ESTADO: Para o modal de visualização de QR rastreado
+    const [modalData, setModalData] = useState(null); 
 
-  // Dados mockados
-  const produtosDisponiveis = useMemo(() => [
-    {
-      id: 'prod_001',
-      nome: 'Smartphone Galaxy S23',
-      preco: 2500.00,
-      percentualComissao: 5,
-      categoria: 'Eletrônicos',
-      sku: 'SM-GS23-BLK'
-    },
-    {
-      id: 'prod_002', 
-      nome: 'Fone Bluetooth',
-      preco: 299.90,
-      percentualComissao: 8,
-      categoria: 'Áudio',
-      sku: 'FB-T500-BLK'
-    },
-    {
-      id: 'prod_003',
-      nome: 'Tablet 10"',
-      preco: 1200.00,
-      percentualComissao: 6,
-      categoria: 'Eletrônicos',
-      sku: 'TB-10PRO-SLV'
-    }
-  ], []);
+    // === GERAÇÃO DE QR CODE (SIMULADA) ===
+    const handleGenerateQR = () => {
+        // Simula a criação de um link rastreável por departamento e loja
+        const baseLink = "http://api.comprasmar.com/link";
+        const newId = `QR-${Math.floor(Math.random() * 900) + 100}-L`;
+        const link = `${baseLink}?source=LOJISTA&dept=${selectedDept}&loja=Agnes&qrId=${newId}`;
+        setGeneratedLink(link);
+    };
 
-  const consultores = useMemo(() => [
-    { id: 'cons_001', nome: 'João Silva', stripeAccountId: 'acct_123' },
-    { id: 'cons_002', nome: 'Maria Santos', stripeAccountId: 'acct_456' },
-    { id: 'cons_003', nome: 'Pedro Oliveira', stripeAccountId: 'acct_789' }
-  ], []);
+    // --- Funções do Modal de Rastreamento ---
+    const handleViewTrackedQR = (qr) => {
+        setModalData(qr);
+    };
 
-  const adicionarProduto = (produtoId) => {
-    const produto = produtosDisponiveis.find(p => p.id === produtoId);
-    if (produto) {
-      setProdutosSelecionados(prev => [...prev, { 
-        ...produto, 
-        quantidade: 1,
-        idUnico: `${produtoId}_${Date.now()}`
-      }]);
-    }
-  };
+    const closeModal = () => {
+        setModalData(null);
+    };
 
-  const removerProduto = (idUnico) => {
-    setProdutosSelecionados(prev => prev.filter(p => p.idUnico !== idUnico));
-  };
-
-  const atualizarQuantidade = (idUnico, quantidade) => {
-    setProdutosSelecionados(prev => 
-      prev.map(p => p.idUnico === idUnico ? { ...p, quantidade: Math.max(1, quantidade) } : p)
-    );
-  };
-
-  const calcularTotais = () => {
-    return produtosSelecionados.reduce((acc, produto) => {
-      const valorProduto = produto.preco * produto.quantidade;
-      const comissaoProduto = valorProduto * (produto.percentualComissao / 100);
-      
-      return {
-        valorTotal: acc.valorTotal + valorProduto,
-        comissaoTotal: acc.comissaoTotal + comissaoProduto,
-        quantidadeTotal: acc.quantidadeTotal + produto.quantidade
-      };
-    }, { valorTotal: 0, comissaoTotal: 0, quantidadeTotal: 0 });
-  };
-
-  const gerarQRCodeVenda = async () => {
-    if (produtosSelecionados.length === 0 || !consultorSelecionado) {
-      alert('Selecione produtos e um consultor!');
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      const totais = calcularTotais();
-      const consultor = consultores.find(c => c.id === consultorSelecionado);
-
-      // Gerar ID único curto para a venda
-      const vendaId = `v${Date.now().toString(36)}`;
-      
-      // Dados da venda para o QR Code/Link
-      const vendaData = {
-        vendaId: vendaId,
-        produtos: produtosSelecionados.map(p => ({
-          id: p.id,
-          sku: p.sku,
-          nome: p.nome,
-          preco: p.preco,
-          quantidade: p.quantidade,
-          percentualComissao: p.percentualComissao
-        })),
-        consultorId: consultorSelecionado,
-        consultorNome: consultor.nome,
-        valorTotal: totais.valorTotal,
-        timestamp: new Date().toISOString()
-      };
-
-      // Codificar dados para QR Code
-      const qrCodeData = Buffer.from(JSON.stringify(vendaData)).toString('base64');
-      
-      // Gerar link curto
-      const linkCurto = `suacomprasmart.com/v/${vendaId}`;
-      
-      // URL completa para integração
-      const urlIntegracao = `${window.location.origin}/integracao-venda/${vendaId}`;
-
-      setQrCodeGerado({
-        qrCode: qrCodeData,
-        vendaId: vendaId,
-        linkCurto: linkCurto,
-        urlIntegracao: urlIntegracao,
-        valorTotal: totais.valorTotal,
-        comissaoTotal: totais.comissaoTotal,
-        dadosVenda: vendaData
-      });
-
-      // Salvar venda no backend
-      await fetch('/api/vendas/salvar-venda-pendente', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendaId: vendaId,
-          dadosVenda: vendaData,
-          status: 'pendente'
-        })
-      });
-
-    } catch (error) {
-      console.error('Erro gerar QR Code:', error);
-      alert('Erro ao gerar QR Code de venda');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copiarLink = () => {
-    navigator.clipboard.writeText(qrCodeGerado.urlIntegracao);
-    alert('Link copiado para a área de transferência!');
-  };
-
-  const totais = calcularTotais();
-
-  return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>🛒 Gerar Venda com QR Code</h1>
-        <p style={styles.subtitle}>Crie vendas para clientes pagarem no caixa físico</p>
-      </div>
-
-      <div style={styles.content}>
-        {/* Seleção de Consultor */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>👤 Consultor Responsável</h2>
-          <select 
-            value={consultorSelecionado} 
-            onChange={(e) => setConsultorSelecionado(e.target.value)}
-            style={styles.select}
-          >
-            <option value="">Selecione um consultor</option>
-            {consultores.map(consultor => (
-              <option key={consultor.id} value={consultor.id}>
-                {consultor.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Seleção de Produtos */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>📦 Produtos da Venda</h2>
-          
-          <div style={styles.produtosGrid}>
-            {/* Produtos Disponíveis */}
-            <div style={styles.produtosDisponiveis}>
-              <h3 style={styles.subsectionTitle}>Adicionar Produtos</h3>
-              <div style={styles.listaProdutos}>
-                {produtosDisponiveis.map(produto => (
-                  <div key={produto.id} style={styles.produtoCard}>
-                    <div style={styles.produtoInfo}>
-                      <strong>{produto.nome}</strong>
-                      <div style={styles.produtoDetalhes}>
-                        R$ {produto.preco.toFixed(2)} • {produto.percentualComissao}% comissão
-                      </div>
-                      <div style={styles.produtoSku}>
-                        SKU: {produto.sku}
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => adicionarProduto(produto.id)}
-                      style={styles.addButton}
-                    >
-                      ➕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Produtos Selecionados */}
-            <div style={styles.produtosSelecionados}>
-              <h3 style={styles.subsectionTitle}>
-                Carrinho ({produtosSelecionados.length})
-              </h3>
-              
-              {produtosSelecionados.length === 0 ? (
-                <div style={styles.emptyState}>
-                  Nenhum produto no carrinho
-                </div>
-              ) : (
-                <div style={styles.listaSelecionados}>
-                  {produtosSelecionados.map(produto => (
-                    <div key={produto.idUnico} style={styles.produtoSelecionado}>
-                      <div style={styles.produtoSelecionadoInfo}>
-                        <strong>{produto.nome}</strong>
-                        <div style={styles.produtoSku}>SKU: {produto.sku}</div>
-                        <div style={styles.produtoControls}>
-                          <div style={styles.quantidadeControl}>
-                            <button 
-                              onClick={() => atualizarQuantidade(produto.idUnico, produto.quantidade - 1)}
-                              style={styles.quantidadeBtn}
-                            >
-                              -
-                            </button>
-                            <span style={styles.quantidade}>{produto.quantidade}</span>
-                            <button 
-                              onClick={() => atualizarQuantidade(produto.idUnico, produto.quantidade + 1)}
-                              style={styles.quantidadeBtn}
-                            >
-                              +
-                            </button>
-                          </div>
-                          <div style={styles.produtoValor}>
-                            R$ {(produto.preco * produto.quantidade).toFixed(2)}
-                          </div>
-                        </div>
-                        <div style={styles.comissaoInfo}>
-                          Comissão: R$ {(produto.preco * produto.quantidade * produto.percentualComissao / 100).toFixed(2)}
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => removerProduto(produto.idUnico)}
-                        style={styles.removeButton}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Resumo da Venda */}
-        {produtosSelecionados.length > 0 && (
-          <div style={styles.resumoSection}>
-            <h2 style={styles.sectionTitle}>💰 Resumo da Venda</h2>
-            <div style={styles.resumoGrid}>
-              <div style={styles.resumoItem}>
-                <span>Valor Total:</span>
-                <strong style={styles.valorTotal}>R$ {totais.valorTotal.toFixed(2)}</strong>
-              </div>
-              <div style={styles.resumoItem}>
-                <span>Comissão Consultor:</span>
-                <strong style={styles.comissaoTotal}>R$ {totais.comissaoTotal.toFixed(2)}</strong>
-              </div>
-              <div style={styles.resumoItem}>
-                <span>Quantidade de Itens:</span>
-                <strong>{totais.quantidadeTotal}</strong>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Gerar QR Code */}
-        {produtosSelecionados.length > 0 && consultorSelecionado && (
-          <div style={styles.gerarSection}>
-            <button 
-              onClick={gerarQRCodeVenda}
-              disabled={loading}
-              style={styles.gerarButton}
-            >
-              {loading ? '🔄 Gerando...' : '🔳 Gerar QR Code & Link'}
-            </button>
-          </div>
-        )}
-
-        {/* QR Code e Link Gerado */}
-        {qrCodeGerado && (
-          <div style={styles.qrCodeSection}>
-            <h2 style={styles.sectionTitle}>✅ Venda Criada com Sucesso!</h2>
+    const handleCopyLink = () => {
+        if (modalData) {
+            const tempLink = `http://api.comprasmar.com/rastreamento?id=${modalData.id}&creator=${modalData.creator}`;
             
-            <div style={styles.compartilharContainer}>
-              {/* QR Code */}
-              <div style={styles.qrCodeContainer}>
-                <h3>📱 QR Code para Escaneamento</h3>
-                <div style={styles.qrCodeImage}>
-                  <div style={styles.qrPlaceholder}>
-                    <div style={styles.qrText}>QR CODE</div>
-                    <div style={styles.qrVendaId}>Venda: {qrCodeGerado.vendaId}</div>
-                    <div style={styles.qrValor}>R$ {qrCodeGerado.valorTotal.toFixed(2)}</div>
-                  </div>
+            // Usando document.execCommand('copy') como fallback seguro em iframes
+            const tempInput = document.createElement('input');
+            tempInput.value = tempLink;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            console.log(`Link do QR Code ${modalData.id} copiado para a área de transferência.`);
+            closeModal();
+        }
+    };
+    // ----------------------------------------
+
+
+    // Estilos internos
+    const styles = {
+        container: {
+            padding: '30px',
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
+            boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
+        },
+        title: {
+            color: '#2c5aa0',
+            fontSize: '2rem',
+            marginBottom: '20px',
+            borderBottom: '2px solid #eee',
+            paddingBottom: '10px'
+        },
+        section: {
+            marginBottom: '40px',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef',
+            backgroundColor: '#f8f9fa'
+        },
+        sectionTitle: {
+            fontSize: '1.5rem',
+            color: '#495057',
+            marginBottom: '20px',
+        },
+        // Geração
+        generationArea: {
+            display: 'flex',
+            gap: '20px',
+            alignItems: 'center',
+            marginBottom: '20px'
+        },
+        select: {
+            padding: '10px 15px',
+            borderRadius: '6px',
+            border: '1px solid #ccc',
+            fontSize: '1rem',
+            minWidth: '200px'
+        },
+        generateButton: {
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s',
+        },
+        generatedBox: {
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '2px dashed #007bff',
+            textAlign: 'center',
+        },
+        linkText: {
+            fontSize: '0.9rem',
+            wordBreak: 'break-all',
+            marginTop: '10px',
+            color: '#007bff'
+        },
+        // Tabela de Rastreamento
+        table: {
+            width: '100%',
+            borderCollapse: 'collapse',
+            minWidth: '700px',
+        },
+        th: {
+            backgroundColor: '#e9f1ff',
+            borderBottom: '2px solid #2c5aa0',
+            padding: '12px 15px',
+            textAlign: 'left',
+            color: '#2c5aa0',
+            fontSize: '0.9rem',
+        },
+        td: {
+            borderBottom: '1px solid #eee',
+            padding: '12px 15px',
+            fontSize: '0.9rem',
+            color: '#333',
+        },
+        sourceTag: {
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            display: 'inline-block',
+        },
+        // Estilos do Modal
+        modalOverlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+        },
+        modalContent: {
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '10px',
+            width: '400px',
+            boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
+            textAlign: 'center',
+        },
+        linkDisplay: {
+            wordBreak: 'break-all',
+            backgroundColor: '#f8f9fa',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '15px',
+            border: '1px solid #ddd',
+            fontSize: '0.9rem',
+            textAlign: 'left',
+        },
+        copyButton: {
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            marginTop: '15px',
+            transition: 'background-color 0.2s',
+        },
+        closeButton: {
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            marginTop: '10px',
+            marginLeft: '10px',
+            transition: 'background-color 0.2s',
+        },
+        infoBox: {
+            backgroundColor: '#eaf2ff',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '15px',
+            border: '1px solid #c8d9f1',
+        }
+    };
+
+    // Lógica para definir a cor da Tag de Fonte
+    const getSourceStyle = (source) => {
+        if (source === 'Vendedor') return { backgroundColor: '#fff3cd', color: '#856404' }; // Amarelo para Vendedor
+        if (source === 'Consultor') return { backgroundColor: '#d1ecf1', color: '#0c5460' }; // Ciano para Consultor
+        return { backgroundColor: '#d4edda', color: '#155724' }; // Verde para Lojista/Outros
+    };
+
+    // NOVO COMPONENTE: Modal para visualizar o QR rastreado
+    const QRCodeModal = () => {
+        if (!modalData) return null;
+
+        const saleValue = modalData.saleValue.toFixed(2).replace('.', ',');
+        const fullUrl = `http://api.comprasmar.com/rastreamento?id=${modalData.id}&creator=${modalData.creator}&dept=${modalData.department}`;
+
+        return (
+            <div style={styles.modalOverlay}>
+                <div style={styles.modalContent}>
+                    <h2 style={{color: styles.title.color, marginBottom: '20px'}}>
+                        🔗 Detalhes do QR Code {modalData.id}
+                    </h2>
+                    
+                    <div style={styles.infoBox}>
+                        <p style={{ margin: '5px 0', fontSize: '1.1rem', fontWeight: 'bold', color: styles.title.color }}>
+                            Criador: {modalData.creator} ({modalData.source})
+                        </p>
+                        <p style={{ margin: '5px 0', fontSize: '1.1rem', fontWeight: 'bold', color: modalData.saleValue > 0 ? '#28a745' : '#dc3545' }}>
+                            Valor da Venda (Simulado): R$ {saleValue}
+                        </p>
+                        <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#666' }}>
+                            Departamento: {modalData.department}
+                        </p>
+                    </div>
+
+                    {/* Simulação Visual do QR Code */}
+                    <div style={{ padding: '20px', backgroundColor: '#f0f0f0', borderRadius: '8px', marginBottom: '15px' }}>
+                        <p style={{ margin: 0, color: '#495057', fontWeight: 'bold' }}>[Simulação de QR Code]</p>
+                        <img 
+                            src={`https://placehold.co/100x100/6f42c1/ffffff?text=${modalData.id}`} 
+                            alt="QR Code Simulado" 
+                            style={{marginTop: '10px', borderRadius: '5px'}}
+                        />
+                    </div>
+                    
+                    <p style={{ margin: '0 0 5px 0', color: '#666' }}>Link de Rastreamento:</p>
+                    <div style={styles.linkDisplay}>
+                        {fullUrl}
+                    </div>
+
+                    <button 
+                        onClick={handleCopyLink}
+                        style={styles.copyButton}
+                    >
+                        📋 Copiar Link
+                    </button>
+                    <button 
+                        onClick={closeModal}
+                        style={styles.closeButton}
+                    >
+                        Fechar
+                    </button>
                 </div>
-                <p style={styles.instructionText}>
-                  Cliente escaneia no caixa físico
+            </div>
+        );
+    };
+
+    return (
+        <div style={styles.container}>
+            <h1 style={styles.title}>🔳 Gerenciamento de QR Codes de Atendimento</h1>
+
+            {/* 1. Geração de QR Code por Departamento */}
+            <div style={styles.section}>
+                <h2 style={styles.sectionTitle}>1. Gerar Novo QR Code (Por Departamento)</h2>
+                <p style={{ color: '#666' }}>
+                    Selecione o departamento para o qual este QR Code será usado no ponto de venda:
                 </p>
-              </div>
-
-              {/* Link Curto */}
-              <div style={styles.linkContainer}>
-                <h3>🔗 Link para Integração</h3>
-                <div style={styles.linkBox}>
-                  <div style={styles.linkDisplay}>
-                    <strong style={styles.linkCurto}>{qrCodeGerado.linkCurto}</strong>
-                  </div>
-                  <button 
-                    onClick={copiarLink}
-                    style={styles.copyButton}
-                  >
-                    📋 Copiar Link
-                  </button>
-                </div>
-                <div style={styles.linkInfo}>
-                  <p><strong>Como usar o link:</strong></p>
-                  <ol style={styles.instructionsList}>
-                    <li>Cole no sistema do lojista</li>
-                    <li>Produtos são adicionados automaticamente ao carrinho</li>
-                    <li>Cliente paga presencialmente</li>
-                    <li>Comissão é processada automaticamente</li>
-                  </ol>
+                
+                <div style={styles.generationArea}>
+                    <select
+                        style={styles.select}
+                        value={selectedDept}
+                        onChange={(e) => setSelectedDept(e.target.value)}
+                    >
+                        {DEPARTMENTS.map(dept => (
+                            <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                    </select>
+                    <button 
+                        style={styles.generateButton}
+                        onClick={handleGenerateQR}
+                    >
+                        Gerar QR Code/Link
+                    </button>
                 </div>
 
-                {/* URL Completa para Debug */}
-                <div style={styles.urlCompleta}>
-                  <details style={styles.details}>
-                    <summary style={styles.summary}>URL Completa de Integração</summary>
-                    <code style={styles.code}>{qrCodeGerado.urlIntegracao}</code>
-                  </details>
-                </div>
-              </div>
+                {generatedLink && (
+                    <div style={styles.generatedBox}>
+                        <h3 style={{ color: '#2c5aa0', marginTop: 0, fontSize: '1.2rem' }}>QR Code Gerado!</h3>
+                        <p style={{ color: '#333', marginBottom: '15px' }}>
+                            Compartilhe este link ou imprima o QR Code (simulado abaixo).
+                        </p>
+                        <div style={{ margin: '10px auto', width: '150px', height: '150px', backgroundColor: '#333', padding: '10px', borderRadius: '5px' }}>
+                            <img 
+                                src={`https://placehold.co/130x130/007bff/ffffff?text=${selectedDept.split('')[0]}-QR`} 
+                                alt="QR Code Simulado" 
+                                style={{ width: '100%', height: '100%', borderRadius: '3px' }}
+                            />
+                        </div>
+                        <p style={styles.linkText}>{generatedLink}</p>
+                    </div>
+                )}
             </div>
 
-            {/* Detalhes da Venda */}
-            <div style={styles.detalhesVenda}>
-              <h3>📋 Detalhes da Venda</h3>
-              <div style={styles.detalhesGrid}>
-                <div style={styles.detalheItem}>
-                  <strong>ID da Venda:</strong> {qrCodeGerado.vendaId}
+            {/* 2. Rastreamento de QR Codes */}
+            <div style={{ ...styles.section, backgroundColor: 'white' }}>
+                <h2 style={styles.sectionTitle}>2. Rastreamento de QR Codes (Vendedores e Consultores)</h2>
+                <p style={{ color: '#666' }}>
+                    Visualização de todos os QRs criados (Vendedores internos e Consultores externos).
+                </p>
+                <div style={{ overflowX: 'auto', marginTop: '20px' }}>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>ID</th>
+                                <th style={styles.th}>Criador</th>
+                                <th style={styles.th}>Fonte</th>
+                                <th style={styles.th}>Departamento</th>
+                                <th style={styles.th}>Status</th>
+                                <th style={styles.th}>Valor Venda (Sim.)</th>
+                                <th style={styles.th}>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {MOCK_QRS.map((qr) => (
+                                <tr key={qr.id}>
+                                    <td style={styles.td}>{qr.id}</td>
+                                    <td style={styles.td}>
+                                        <strong>{qr.creator}</strong> 
+                                    </td>
+                                    <td style={styles.td}>
+                                        <span style={getSourceStyle(qr.source)}>{qr.source}</span>
+                                    </td>
+                                    <td style={styles.td}>{qr.department}</td>
+                                    <td style={styles.td} className={qr.status === 'Ativo' ? 'text-green-600' : 'text-red-600'}>
+                                        {qr.status}
+                                    </td>
+                                    {/* Exibição do valor na tabela */}
+                                    <td style={{...styles.td, fontWeight: 'bold', color: qr.saleValue > 0 ? '#28a745' : '#dc3545'}}>
+                                        R$ {qr.saleValue.toFixed(2).replace('.', ',')}
+                                    </td>
+                                    <td style={styles.td}>
+                                        {/* Botão para abrir o modal */}
+                                        <button 
+                                            onClick={() => handleViewTrackedQR(qr)}
+                                            style={{
+                                                backgroundColor: '#007bff',
+                                                color: 'white',
+                                                border: 'none',
+                                                padding: '6px 10px',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.8rem',
+                                                fontWeight: 'bold',
+                                                transition: 'background-color 0.2s',
+                                            }}
+                                        >
+                                            Ver QR Code
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-                <div style={styles.detalheItem}>
-                  <strong>Consultor:</strong> {qrCodeGerado.dadosVenda.consultorNome}
-                </div>
-                <div style={styles.detalheItem}>
-                  <strong>Valor Total:</strong> R$ {qrCodeGerado.valorTotal.toFixed(2)}
-                </div>
-                <div style={styles.detalheItem}>
-                  <strong>Comissão:</strong> R$ {qrCodeGerado.comissaoTotal.toFixed(2)}
-                </div>
-              </div>
-              
-              <div style={styles.produtosLista}>
-                <h4>Produtos Incluídos:</h4>
-                {qrCodeGerado.dadosVenda.produtos.map((produto, index) => (
-                  <div key={index} style={styles.produtoResumo}>
-                    {produto.quantidade}x {produto.nome} - R$ {(produto.preco * produto.quantidade).toFixed(2)}
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const styles = {
-  container: {
-    padding: '30px 20px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    fontFamily: 'Inter, sans-serif',
-    minHeight: '100vh',
-    backgroundColor: '#f8f9fa'
-  },
-  header: {
-    marginBottom: '30px',
-    textAlign: 'center'
-  },
-  title: {
-    fontSize: '2.2rem',
-    color: '#333',
-    marginBottom: '8px',
-    fontWeight: '700'
-  },
-  subtitle: {
-    fontSize: '1.1rem',
-    color: '#666',
-    margin: 0
-  },
-  content: {
-    backgroundColor: 'white',
-    padding: '30px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-  },
-  section: {
-    marginBottom: '30px',
-    padding: '25px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
-    border: '1px solid #e9ecef'
-  },
-  sectionTitle: {
-    fontSize: '1.3rem',
-    color: '#333',
-    marginBottom: '20px',
-    fontWeight: '600'
-  },
-  select: {
-    width: '100%',
-    padding: '12px 16px',
-    border: '2px solid #e0e0e0',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    backgroundColor: 'white'
-  },
-  produtosGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '20px'
-  },
-  produtosDisponiveis: {
-    padding: '20px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    border: '1px solid #e9ecef'
-  },
-  listaProdutos: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px'
-  },
-  produtoCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '15px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
-    border: '1px solid #dee2e6'
-  },
-  produtoInfo: {
-    flex: 1
-  },
-  produtoDetalhes: {
-    fontSize: '0.9rem',
-    color: '#666',
-    marginTop: '5px'
-  },
-  produtoSku: {
-    fontSize: '0.8rem',
-    color: '#999',
-    marginTop: '2px'
-  },
-  addButton: {
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    padding: '8px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '1.2rem'
-  },
-  produtosSelecionados: {
-    padding: '20px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    border: '1px solid #e9ecef'
-  },
-  emptyState: {
-    textAlign: 'center',
-    color: '#666',
-    padding: '40px 20px',
-    fontStyle: 'italic'
-  },
-  listaSelecionados: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px'
-  },
-  produtoSelecionado: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: '15px',
-    backgroundColor: '#e7f3ff',
-    borderRadius: '8px',
-    border: '1px solid #b3d9ff'
-  },
-  produtoSelecionadoInfo: {
-    flex: 1
-  },
-  produtoControls: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '10px'
-  },
-  quantidadeControl: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  quantidadeBtn: {
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    width: '30px',
-    height: '30px',
-    borderRadius: '50%',
-    cursor: 'pointer',
-    fontSize: '1rem'
-  },
-  quantidade: {
-    fontWeight: 'bold',
-    minWidth: '30px',
-    textAlign: 'center'
-  },
-  produtoValor: {
-    fontWeight: 'bold',
-    color: '#28a745'
-  },
-  comissaoInfo: {
-    fontSize: '0.8rem',
-    color: '#6f42c1',
-    marginTop: '5px'
-  },
-  removeButton: {
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    padding: '8px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer'
-  },
-  resumoSection: {
-    backgroundColor: '#d4edda',
-    border: '1px solid #c3e6cb'
-  },
-  resumoGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '20px'
-  },
-  resumoItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '15px',
-    backgroundColor: 'white',
-    borderRadius: '8px'
-  },
-  valorTotal: {
-    color: '#28a745',
-    fontSize: '1.2rem'
-  },
-  comissaoTotal: {
-    color: '#6f42c1',
-    fontSize: '1.1rem'
-  },
-  gerarSection: {
-    textAlign: 'center',
-    margin: '30px 0'
-  },
-  gerarButton: {
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    padding: '15px 30px',
-    borderRadius: '8px',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  qrCodeSection: {
-    marginTop: '30px',
-    padding: '25px',
-    backgroundColor: '#e7f3ff',
-    borderRadius: '8px',
-    border: '1px solid #b3d9ff'
-  },
-  compartilharContainer: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '40px',
-    marginBottom: '30px'
-  },
-  qrCodeContainer: {
-    textAlign: 'center'
-  },
-  qrCodeImage: {
-    margin: '20px 0'
-  },
-  qrPlaceholder: {
-    width: '200px',
-    height: '200px',
-    backgroundColor: '#f8f9fa',
-    border: '2px solid #007bff',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto',
-    fontWeight: '600'
-  },
-  qrText: {
-    fontSize: '1.2rem',
-    color: '#007bff',
-    marginBottom: '10px'
-  },
-  qrVendaId: {
-    fontSize: '0.8rem',
-    color: '#666',
-    marginBottom: '5px'
-  },
-  qrValor: {
-    fontSize: '1rem',
-    color: '#28a745',
-    fontWeight: 'bold'
-  },
-  instructionText: {
-    color: '#666',
-    fontSize: '0.9rem'
-  },
-  linkContainer: {
-    padding: '20px'
-  },
-  linkBox: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '20px'
-  },
-  linkDisplay: {
-    flex: 1,
-    padding: '12px 16px',
-    backgroundColor: '#f8f9fa',
-    border: '2px solid #e0e0e0',
-    borderRadius: '8px',
-    fontSize: '1.1rem'
-  },
-  linkCurto: {
-    color: '#007bff'
-  },
-  copyButton: {
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    padding: '12px 20px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '600'
-  },
-  linkInfo: {
-    backgroundColor: 'white',
-    padding: '15px',
-    borderRadius: '8px',
-    marginBottom: '15px'
-  },
-  instructionsList: {
-    margin: '10px 0',
-    paddingLeft: '20px',
-    fontSize: '0.9rem'
-  },
-  urlCompleta: {
-    marginTop: '15px'
-  },
-  details: {
-    backgroundColor: '#f8f9fa',
-    padding: '10px',
-    borderRadius: '6px'
-  },
-  summary: {
-    cursor: 'pointer',
-    fontWeight: '600'
-  },
-  code: {
-    display: 'block',
-    marginTop: '10px',
-    padding: '10px',
-    backgroundColor: '#e9ecef',
-    borderRadius: '4px',
-    fontSize: '0.8rem',
-    wordBreak: 'break-all'
-  },
-  detalhesVenda: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '8px',
-    border: '1px solid #e9ecef'
-  },
-  detalhesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '15px',
-    marginBottom: '20px'
-  },
-  detalheItem: {
-    padding: '10px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '6px'
-  },
-  produtosLista: {
-    marginTop: '15px'
-  },
-  produtoResumo: {
-    padding: '8px 12px',
-    backgroundColor: '#f8f9fa',
-    marginBottom: '5px',
-    borderRadius: '4px',
-    fontSize: '0.9rem'
-  }
+            {/* Renderiza o Modal */}
+            <QRCodeModal />
+        </div>
+    );
 };
 
 export default LojistaQRCode;

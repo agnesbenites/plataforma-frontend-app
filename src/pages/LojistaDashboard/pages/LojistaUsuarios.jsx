@@ -1,1050 +1,449 @@
-// src/pages/LojistaUsuarios.jsx
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
-const LojistaUsuarios = () => {
-  const [usuarios, setUsuarios] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [usuarioEditando, setUsuarioEditando] = useState(null);
-  const [filtroPermissao, setFiltroPermissao] = useState("todos");
-  const [busca, setBusca] = useState("");
-
-  const [formData, setFormData] = useState({
-    nome: "",
-    email: "",
-    telefone: "",
-    cpf: "",
-    permissao: "visualizador",
-    filiais: [],
-    departamento: "",
-    cargo: "",
-    dataAdmissao: "",
-    status: "ativo",
-    observacoes: "",
-  });
-
-  // Dados mockados
-  const filiais = [
-    { id: 1, nome: "Matriz - Centro" },
-    { id: 2, nome: "Filial - Shopping" },
-    { id: 3, nome: "Loja Online" },
-  ];
-
-  const departamentos = [
-    "Vendas",
-    "Marketing",
-    "Financeiro",
-    "RH",
-    "TI",
-    "Operações",
-    "Administrativo",
-  ];
-
-  const permissoes = [
-    {
-      id: "visualizador",
-      nome: "👀 Visualizador",
-      descricao: "Pode apenas visualizar dados",
-      nivel: 1,
-      cor: "#6c757d",
-    },
-    {
-      id: "operador",
-      nome: "⚙️ Operador",
-      descricao: "Pode operar o sistema com limitações",
-      nivel: 2,
-      cor: "#17a2b8",
-    },
-    {
-      id: "gerente",
-      nome: "👨‍💼 Gerente",
-      descricao: "Pode gerenciar equipe e operações",
-      nivel: 3,
-      cor: "#28a745",
-    },
-    {
-      id: "administrador",
-      nome: "🔧 Administrador",
-      descricao: "Acesso total ao sistema",
-      nivel: 4,
-      cor: "#dc3545",
-    },
-  ];
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    if (type === "checkbox") {
-      // Para checkboxes de filiais
-      const updatedFiliais = checked
-        ? [...formData.filiais, value]
-        : formData.filiais.filter((id) => id !== value);
-
-      setFormData((prev) => ({
-        ...prev,
-        filiais: updatedFiliais,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const usuarioData = {
-      id: usuarioEditando ? usuarioEditando.id : Date.now(),
-      ...formData,
-      dataCriacao: usuarioEditando
-        ? usuarioEditando.dataCriacao
-        : new Date().toISOString(),
-      dataAtualizacao: new Date().toISOString(),
-      ultimoAcesso: usuarioEditando ? usuarioEditando.ultimoAcesso : null,
-      // Mock de dados adicionais
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        formData.nome
-      )}&background=007bff&color=fff&size=100`,
-    };
-
-    if (usuarioEditando) {
-      setUsuarios((prev) =>
-        prev.map((u) => (u.id === usuarioEditando.id ? usuarioData : u))
-      );
-    } else {
-      setUsuarios((prev) => [...prev, usuarioData]);
-    }
-
-    // Reset form
-    setFormData({
-      nome: "",
-      email: "",
-      telefone: "",
-      cpf: "",
-      permissao: "visualizador",
-      filiais: [],
-      departamento: "",
-      cargo: "",
-      dataAdmissao: "",
-      status: "ativo",
-      observacoes: "",
-    });
-
-    setShowForm(false);
-    setUsuarioEditando(null);
-    alert(
-      usuarioEditando
-        ? "Usuário atualizado com sucesso!"
-        : "Usuário cadastrado com sucesso!"
-    );
-  };
-
-  const handleEditar = (usuario) => {
-    setFormData(usuario);
-    setUsuarioEditando(usuario);
-    setShowForm(true);
-  };
-
-  const handleExcluir = (id) => {
-    if (window.confirm("Tem certeza que deseja excluir este usuário?")) {
-      setUsuarios((prev) => prev.filter((u) => u.id !== id));
-      alert("Usuário excluído com sucesso!");
-    }
-  };
-
-  const handleCancelar = () => {
-    setShowForm(false);
-    setUsuarioEditando(null);
-    setFormData({
-      nome: "",
-      email: "",
-      telefone: "",
-      cpf: "",
-      permissao: "visualizador",
-      filiais: [],
-      departamento: "",
-      cargo: "",
-      dataAdmissao: "",
-      status: "ativo",
-      observacoes: "",
-    });
-  };
-
-  const handleToggleStatus = (id) => {
-    setUsuarios((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? { ...u, status: u.status === "ativo" ? "inativo" : "ativo" }
-          : u
-      )
-    );
-  };
-
-  const getPermissaoInfo = (permissaoId) => {
-    return permissoes.find((p) => p.id === permissaoId) || permissoes[0];
-  };
-
-  const getStatusBadge = (status) => {
-    return status === "ativo" ? (
-      <span style={styles.badgeAtivo}>✅ Ativo</span>
-    ) : (
-      <span style={styles.badgeInativo}>❌ Inativo</span>
-    );
-  };
-
-  const getFiliaisNomes = (filiaisIds) => {
-    return filiaisIds
-      .map((id) => {
-        const filial = filiais.find((f) => f.id.toString() === id);
-        return filial ? filial.nome : "Filial não encontrada";
-      })
-      .join(", ");
-  };
-
-  // Filtros
-  const usuariosFiltrados = usuarios.filter((usuario) => {
-    const matchPermissao =
-      filtroPermissao === "todos" || usuario.permissao === filtroPermissao;
-    const matchBusca =
-      usuario.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      usuario.email.toLowerCase().includes(busca.toLowerCase()) ||
-      usuario.cargo.toLowerCase().includes(busca.toLowerCase());
-    return matchPermissao && matchBusca;
-  });
-
-  const estatisticas = {
-    total: usuarios.length,
-    ativos: usuarios.filter((u) => u.status === "ativo").length,
-    administradores: usuarios.filter((u) => u.permissao === "administrador")
-      .length,
-    visualizadores: usuarios.filter((u) => u.permissao === "visualizador")
-      .length,
-  };
-
-  return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>👥 Gestão de Usuários</h1>
-          <p style={styles.subtitle}>
-            Controle o acesso da sua equipe ao sistema
-          </p>
-        </div>
-        <div style={styles.stats}>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{estatisticas.total}</span>
-            <span style={styles.statLabel}>Total</span>
-          </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{estatisticas.ativos}</span>
-            <span style={styles.statLabel}>Ativos</span>
-          </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>
-              {estatisticas.administradores}
-            </span>
-            <span style={styles.statLabel}>Administradores</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Filtros e Ações */}
-      <div style={styles.filters}>
-        <div style={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="🔍 Buscar por nome, email ou cargo..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-
-        <select
-          value={filtroPermissao}
-          onChange={(e) => setFiltroPermissao(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="todos">👥 Todas as permissões</option>
-          {permissoes.map((permissao) => (
-            <option key={permissao.id} value={permissao.id}>
-              {permissao.nome}
-            </option>
-          ))}
-        </select>
-
-        <button style={styles.addButton} onClick={() => setShowForm(true)}>
-          ➕ Novo Usuário
-        </button>
-      </div>
-
-      {/* Formulário */}
-      {showForm && (
-        <div style={styles.formContainer}>
-          <h2 style={styles.formTitle}>
-            {usuarioEditando ? "✏️ Editar Usuário" : "👥 Novo Usuário"}
-          </h2>
-
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <div style={styles.formGrid}>
-              {/* Dados Pessoais */}
-              <div style={styles.formSection}>
-                <h3 style={styles.sectionTitle}>Dados Pessoais</h3>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Nome Completo *</label>
-                  <input
-                    type="text"
-                    name="nome"
-                    value={formData.nome}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                  />
-                </div>
-
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Email *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      style={styles.input}
-                      required
-                    />
-                  </div>
-
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Telefone</label>
-                    <input
-                      type="tel"
-                      name="telefone"
-                      value={formData.telefone}
-                      onChange={handleInputChange}
-                      style={styles.input}
-                      placeholder="(11) 99999-9999"
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>CPF</label>
-                  <input
-                    type="text"
-                    name="cpf"
-                    value={formData.cpf}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    placeholder="000.000.000-00"
-                  />
-                </div>
-              </div>
-
-              {/* Permissões e Acesso */}
-              <div style={styles.formSection}>
-                <h3 style={styles.sectionTitle}>Permissões e Acesso</h3>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Nível de Permissão *</label>
-                  <div style={styles.permissoesGrid}>
-                    {permissoes.map((permissao) => (
-                      <label key={permissao.id} style={styles.permissaoOption}>
-                        <input
-                          type="radio"
-                          name="permissao"
-                          value={permissao.id}
-                          checked={formData.permissao === permissao.id}
-                          onChange={handleInputChange}
-                          style={styles.radioInput}
-                        />
-                        <div
-                          style={{
-                            ...styles.permissaoCard,
-                            borderColor:
-                              formData.permissao === permissao.id
-                                ? permissao.cor
-                                : "#e0e0e0",
-                          }}
-                        >
-                          <div style={styles.permissaoHeader}>
-                            <span style={styles.permissaoNome}>
-                              {permissao.nome}
-                            </span>
-                            <span
-                              style={{
-                                ...styles.permissaoNivel,
-                                backgroundColor: permissao.cor,
-                              }}
-                            >
-                              Nível {permissao.nivel}
-                            </span>
-                          </div>
-                          <p style={styles.permissaoDescricao}>
-                            {permissao.descricao}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Filiais de Acesso</label>
-                  <div style={styles.filiaisCheckbox}>
-                    {filiais.map((filial) => (
-                      <label key={filial.id} style={styles.checkboxLabel}>
-                        <input
-                          type="checkbox"
-                          value={filial.id}
-                          checked={formData.filiais.includes(
-                            filial.id.toString()
-                          )}
-                          onChange={handleInputChange}
-                          style={styles.checkboxInput}
-                        />
-                        <span style={styles.checkboxText}>{filial.nome}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    style={styles.select}
-                  >
-                    <option value="ativo">✅ Ativo</option>
-                    <option value="inativo">❌ Inativo</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Dados Profissionais */}
-              <div style={styles.formSection}>
-                <h3 style={styles.sectionTitle}>Dados Profissionais</h3>
-
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Departamento</label>
-                    <select
-                      name="departamento"
-                      value={formData.departamento}
-                      onChange={handleInputChange}
-                      style={styles.select}
-                    >
-                      <option value="">Selecione um departamento</option>
-                      {departamentos.map((depto) => (
-                        <option key={depto} value={depto}>
-                          {depto}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Cargo</label>
-                    <input
-                      type="text"
-                      name="cargo"
-                      value={formData.cargo}
-                      onChange={handleInputChange}
-                      style={styles.input}
-                      placeholder="Ex: Gerente de Vendas"
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Data de Admissão</label>
-                  <input
-                    type="date"
-                    name="dataAdmissao"
-                    value={formData.dataAdmissao}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                  />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Observações</label>
-                  <textarea
-                    name="observacoes"
-                    value={formData.observacoes}
-                    onChange={handleInputChange}
-                    style={styles.textarea}
-                    rows="3"
-                    placeholder="Observações adicionais sobre o usuário..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.formActions}>
-              <button
-                type="button"
-                onClick={handleCancelar}
-                style={styles.cancelButton}
-              >
-                Cancelar
-              </button>
-              <button type="submit" style={styles.submitButton}>
-                {usuarioEditando ? "Atualizar Usuário" : "Cadastrar Usuário"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Lista de Usuários */}
-      {!showForm && (
-        <div style={styles.listaContainer}>
-          <h2 style={styles.listaTitle}>
-            Usuários do Sistema ({usuariosFiltrados.length})
-          </h2>
-
-          {usuarios.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>👥</div>
-              <h3 style={styles.emptyTitle}>Nenhum usuário cadastrado</h3>
-              <p style={styles.emptyText}>
-                Comece adicionando usuários para acessar o sistema.
-              </p>
-              <button
-                style={styles.addButton}
-                onClick={() => setShowForm(true)}
-              >
-                ➕ Adicionar Primeiro Usuário
-              </button>
-            </div>
-          ) : (
-            <div style={styles.usuariosGrid}>
-              {usuariosFiltrados.map((usuario) => {
-                const permissaoInfo = getPermissaoInfo(usuario.permissao);
-                return (
-                  <div key={usuario.id} style={styles.usuarioCard}>
-                    <div style={styles.usuarioHeader}>
-                      <div style={styles.usuarioAvatar}>
-                        <img
-                          src={usuario.avatar}
-                          alt={usuario.nome}
-                          style={styles.avatarImage}
-                        />
-                      </div>
-                      <div style={styles.usuarioInfo}>
-                        <h3 style={styles.usuarioNome}>{usuario.nome}</h3>
-                        <p style={styles.usuarioEmail}>{usuario.email}</p>
-                        {usuario.cargo && (
-                          <p style={styles.usuarioCargo}>{usuario.cargo}</p>
-                        )}
-                      </div>
-                      <div style={styles.usuarioBadges}>
-                        <span
-                          style={{
-                            ...styles.permissaoBadge,
-                            backgroundColor: permissaoInfo.cor + "20",
-                            color: permissaoInfo.cor,
-                            borderColor: permissaoInfo.cor,
-                          }}
-                        >
-                          {permissaoInfo.nome}
-                        </span>
-                        {getStatusBadge(usuario.status)}
-                      </div>
-                    </div>
-
-                    <div style={styles.usuarioDetalhes}>
-                      {usuario.departamento && (
-                        <div style={styles.detalheItem}>
-                          <strong>Departamento:</strong> {usuario.departamento}
-                        </div>
-                      )}
-                      {usuario.telefone && (
-                        <div style={styles.detalheItem}>
-                          <strong>Telefone:</strong> {usuario.telefone}
-                        </div>
-                      )}
-                      {usuario.filiais.length > 0 && (
-                        <div style={styles.detalheItem}>
-                          <strong>Filiais:</strong>{" "}
-                          {getFiliaisNomes(usuario.filiais)}
-                        </div>
-                      )}
-                      <div style={styles.detalheItem}>
-                        <strong>Cadastrado em:</strong>{" "}
-                        {new Date(usuario.dataCriacao).toLocaleDateString(
-                          "pt-BR"
-                        )}
-                      </div>
-                      {usuario.ultimoAcesso && (
-                        <div style={styles.detalheItem}>
-                          <strong>Último acesso:</strong>{" "}
-                          {new Date(usuario.ultimoAcesso).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={styles.usuarioActions}>
-                      <button
-                        onClick={() => handleToggleStatus(usuario.id)}
-                        style={
-                          usuario.status === "ativo"
-                            ? styles.desativarButton
-                            : styles.ativarButton
-                        }
-                      >
-                        {usuario.status === "ativo"
-                          ? "❌ Desativar"
-                          : "✅ Ativar"}
-                      </button>
-                      <button
-                        onClick={() => handleEditar(usuario)}
-                        style={styles.editButton}
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        onClick={() => handleExcluir(usuario.id)}
-                        style={styles.deleteButton}
-                      >
-                        🗑️ Excluir
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+const mockStyles = {
+    pageContainer: "min-h-screen bg-gray-50 p-4 sm:p-8 font-sans",
+    title: "text-3xl font-extrabold text-[#2c5aa0] border-b pb-2 mb-4",
+    subtitle: "text-lg text-gray-600 mb-8",
+    sectionCard: "bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8",
+    cardTitle: "text-xl font-bold text-[#2c5aa0] mb-4 border-b pb-2",
+    input: "w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150",
+    buttonPrimary: "px-4 py-2 bg-[#2c5aa0] text-white font-semibold rounded-lg shadow-md hover:bg-[#1a407a] transition duration-150",
+    buttonDanger: "px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-150",
+    buttonSuccess: "px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150",
+    tableHeader: "bg-gray-50",
+    tableTh: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+    badgeSuccess: "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700",
+    badgeWarning: "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-700",
+    badgePrimary: "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-700",
+    badgeDanger: "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700",
+    modalOverlay: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
+    modalContent: "bg-white p-6 rounded-xl shadow-lg max-w-md w-full mx-4",
+    notificationForm: "space-y-4",
+    formGroup: "mb-4",
+    label: "block text-sm font-medium text-gray-700 mb-2",
+    textarea: "w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 resize-none",
+    checkboxGroup: "flex items-center space-x-4 mb-4",
+    checkboxLabel: "flex items-center space-x-2",
 };
 
-// Estilos
-const styles = {
-  container: {
-    padding: "30px 20px",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    fontFamily: "Inter, sans-serif",
-    minHeight: "100vh",
-    backgroundColor: "#f8f9fa",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: "30px",
-    flexWrap: "wrap",
-    gap: "20px",
-  },
-  title: {
-    fontSize: "2.2rem",
-    color: "#333",
-    marginBottom: "8px",
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: "1.1rem",
-    color: "#666",
-    margin: 0,
-  },
-  stats: {
-    display: "flex",
-    gap: "15px",
-  },
-  statCard: {
-    backgroundColor: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    textAlign: "center",
-    minWidth: "100px",
-  },
-  statNumber: {
-    display: "block",
-    fontSize: "2rem",
-    fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: "5px",
-  },
-  statLabel: {
-    fontSize: "0.9rem",
-    color: "#666",
-    fontWeight: "500",
-  },
-  filters: {
-    display: "flex",
-    gap: "15px",
-    marginBottom: "30px",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  searchBox: {
-    flex: 1,
-    minWidth: "200px",
-  },
-  searchInput: {
-    width: "100%",
-    padding: "12px 16px",
-    border: "2px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "1rem",
-  },
-  filterSelect: {
-    padding: "12px 16px",
-    border: "2px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    backgroundColor: "white",
-    minWidth: "200px",
-  },
-  addButton: {
-    backgroundColor: "#007bff",
-    color: "white",
-    border: "none",
-    padding: "12px 20px",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-  formContainer: {
-    backgroundColor: "white",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-    marginBottom: "30px",
-  },
-  formTitle: {
-    fontSize: "1.5rem",
-    color: "#333",
-    marginBottom: "25px",
-    fontWeight: "600",
-  },
-  form: {
-    width: "100%",
-  },
-  formGrid: {
-    display: "grid",
-    gap: "30px",
-  },
-  formSection: {
-    padding: "25px",
-    backgroundColor: "#f8f9fa",
-    borderRadius: "8px",
-    border: "1px solid #e9ecef",
-  },
-  sectionTitle: {
-    fontSize: "1.2rem",
-    color: "#333",
-    marginBottom: "20px",
-    fontWeight: "600",
-  },
-  formGroup: {
-    marginBottom: "20px",
-  },
-  formRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "15px",
-  },
-  label: {
-    display: "block",
-    marginBottom: "8px",
-    fontWeight: "600",
-    color: "#333",
-    fontSize: "0.95rem",
-  },
-  input: {
-    width: "100%",
-    padding: "12px 16px",
-    border: "2px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    transition: "border-color 0.3s ease",
-    boxSizing: "border-box",
-  },
-  textarea: {
-    width: "100%",
-    padding: "12px 16px",
-    border: "2px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    resize: "vertical",
-    minHeight: "80px",
-    boxSizing: "border-box",
-  },
-  select: {
-    width: "100%",
-    padding: "12px 16px",
-    border: "2px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    backgroundColor: "white",
-    cursor: "pointer",
-  },
-  permissoesGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "15px",
-  },
-  permissaoOption: {
-    cursor: "pointer",
-  },
-  permissaoCard: {
-    padding: "15px",
-    borderRadius: "8px",
-    border: "2px solid #e0e0e0",
-    transition: "all 0.3s ease",
-    backgroundColor: "white",
-  },
-  permissaoHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "8px",
-  },
-  permissaoNome: {
-    fontWeight: "600",
-    fontSize: "0.95rem",
-  },
-  permissaoNivel: {
-    color: "white",
-    padding: "2px 8px",
-    borderRadius: "12px",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-  },
-  permissaoDescricao: {
-    fontSize: "0.85rem",
-    color: "#666",
-    margin: 0,
-    lineHeight: "1.4",
-  },
-  filiaisCheckbox: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "10px",
-  },
-  checkboxLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-    fontSize: "0.9rem",
-  },
-  checkboxInput: {
-    margin: 0,
-  },
-  checkboxText: {
-    fontSize: "0.9rem",
-  },
-  radioInput: {
-    display: "none",
-  },
-  formActions: {
-    display: "flex",
-    gap: "15px",
-    justifyContent: "flex-end",
-    marginTop: "30px",
-    paddingTop: "20px",
-    borderTop: "1px solid #e9ecef",
-  },
-  cancelButton: {
-    backgroundColor: "#6c757d",
-    color: "white",
-    border: "none",
-    padding: "12px 25px",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  submitButton: {
-    backgroundColor: "#28a745",
-    color: "white",
-    border: "none",
-    padding: "12px 25px",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  listaContainer: {
-    backgroundColor: "white",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-  },
-  listaTitle: {
-    fontSize: "1.5rem",
-    color: "#333",
-    marginBottom: "25px",
-    fontWeight: "600",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "60px 20px",
-  },
-  emptyIcon: {
-    fontSize: "4rem",
-    marginBottom: "20px",
-  },
-  emptyTitle: {
-    fontSize: "1.5rem",
-    color: "#333",
-    marginBottom: "10px",
-  },
-  emptyText: {
-    color: "#666",
-    fontSize: "1.1rem",
-    marginBottom: "30px",
-  },
-  usuariosGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))",
-    gap: "20px",
-  },
-  usuarioCard: {
-    backgroundColor: "#f8f9fa",
-    padding: "25px",
-    borderRadius: "12px",
-    border: "1px solid #e9ecef",
-    transition: "transform 0.2s ease",
-  },
-  usuarioHeader: {
-    display: "flex",
-    gap: "15px",
-    marginBottom: "20px",
-  },
-  usuarioAvatar: {
-    flexShrink: 0,
-  },
-  avatarImage: {
-    width: "60px",
-    height: "60px",
-    borderRadius: "50%",
-    border: "2px solid #e0e0e0",
-  },
-  usuarioInfo: {
-    flex: 1,
-  },
-  usuarioNome: {
-    fontSize: "1.2rem",
-    color: "#333",
-    margin: "0 0 5px 0",
-    fontWeight: "600",
-  },
-  usuarioEmail: {
-    color: "#666",
-    fontSize: "0.9rem",
-    margin: "0 0 5px 0",
-  },
-  usuarioCargo: {
-    color: "#007bff",
-    fontSize: "0.9rem",
-    margin: 0,
-    fontWeight: "500",
-  },
-  usuarioBadges: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    alignItems: "flex-end",
-  },
-  permissaoBadge: {
-    padding: "4px 8px",
-    borderRadius: "12px",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    border: "1px solid",
-  },
-  badgeAtivo: {
-    backgroundColor: "#d4edda",
-    color: "#155724",
-    padding: "4px 8px",
-    borderRadius: "12px",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    border: "1px solid #c3e6cb",
-  },
-  badgeInativo: {
-    backgroundColor: "#f8d7da",
-    color: "#721c24",
-    padding: "4px 8px",
-    borderRadius: "12px",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    border: "1px solid #f5c6cb",
-  },
-  usuarioDetalhes: {
-    marginBottom: "20px",
-  },
-  detalheItem: {
-    margin: "5px 0",
-    fontSize: "0.9rem",
-    color: "#555",
-  },
-  usuarioActions: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  ativarButton: {
-    backgroundColor: "#28a745",
-    color: "white",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "0.8rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    flex: 1,
-  },
-  desativarButton: {
-    backgroundColor: "#dc3545",
-    color: "white",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "0.8rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    flex: 1,
-  },
-  editButton: {
-    backgroundColor: "#ffc107",
-    color: "#212529",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "0.8rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    flex: 1,
-  },
-  deleteButton: {
-    backgroundColor: "#6c757d",
-    color: "white",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "0.8rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    flex: 1,
-  },
+// Serviço de notificações (simulado)
+const notificationService = {
+    enviarNotificacao: async (destinatarios, titulo, mensagem, tipo) => {
+        // Simulação de envio de notificação
+        console.log('📧 Enviando notificação:', {
+            destinatarios,
+            titulo,
+            mensagem,
+            tipo,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Aqui você integraria com seu backend real
+        return new Promise(resolve => setTimeout(() => resolve({ success: true }), 1000));
+    }
+};
+
+const initialUsers = [
+    { id: 1, nome: 'Ana Paula Matos', email: 'ana.matos@lojista.com', perfil: 'Admin Lojista', filial: 'Matriz', status: 'ativo', tipo: 'lojista' },
+    { id: 2, nome: 'João Silva', email: 'joao.silva@lojista.com', perfil: 'Vendedor', filial: 'Loja Centro - SP', status: 'ativo', tipo: 'lojista' },
+    { id: 3, nome: 'Carla Dias', email: 'carla.dias@lojista.com', perfil: 'Vendedor', filial: 'Filial Online', status: 'ativo', tipo: 'lojista' },
+    { id: 4, nome: 'Pedro Costa', email: 'pedro.costa@lojista.com', perfil: 'Admin Lojista', filial: 'Matriz', status: 'inativo', tipo: 'lojista' },
+];
+
+const initialConsultores = [
+    { id: 101, nome: 'Marcus Vinícius (Consultor Externo)', email: 'marcus.v@consultor.com', status: 'pendente', tipo: 'consultor' },
+    { id: 102, nome: 'Juliana Lima (Consultora Externa)', email: 'juliana.l@consultor.com', status: 'aprovado', tipo: 'consultor' },
+];
+
+const LojistaUsuarios = () => {
+    const [usuarios, setUsuarios] = useState(initialUsers);
+    const [consultores, setConsultores] = useState(initialConsultores);
+    const [novoNome, setNovoNome] = useState('');
+    const [novoEmail, setNovoEmail] = useState('');
+    const [novoPerfil, setNovoPerfil] = useState('Vendedor');
+    const [novaFilial, setNovaFilial] = useState('Loja Centro - SP');
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
+    const [notificationData, setNotificationData] = useState({
+        titulo: '',
+        mensagem: '',
+        enviarParaLojistas: true,
+        enviarParaConsultores: false
+    });
+    const [loading, setLoading] = useState(false);
+
+    const filiaisMock = ['Matriz', 'Loja Centro - SP', 'Filial Online', 'Quiosque Shopping'];
+
+    const handleAddUser = () => {
+        if (novoNome && novoEmail) {
+            const newUser = {
+                id: Date.now(),
+                nome: novoNome,
+                email: novoEmail,
+                perfil: novoPerfil,
+                filial: novoPerfil === 'Vendedor' ? novaFilial : 'Matriz',
+                status: 'ativo',
+                tipo: 'lojista'
+            };
+            setUsuarios([...usuarios, newUser]);
+            setNovoNome('');
+            setNovoEmail('');
+        }
+    };
+
+    const handleToggleStatus = (id) => {
+        setUsuarios(usuarios.map(u =>
+            u.id === id ? { ...u, status: u.status === 'ativo' ? 'inativo' : 'ativo' } : u
+        ));
+    };
+
+    const handleAprovarConsultor = async (id) => {
+        const consultor = consultores.find(c => c.id === id);
+        setConsultores(consultores.map(c => 
+            c.id === id ? { ...c, status: 'aprovado' } : c
+        ));
+
+        // Notificação de aprovação para o consultor
+        await notificationService.enviarNotificacao(
+            [consultor.email],
+            'Parceria Aprovada! 🎉',
+            `Olá ${consultor.nome}, sua solicitação de parceria foi aprovada! Agora você pode começar a vender nossos produtos.`,
+            'parceria_aprovada'
+        );
+    };
+
+    const handleRecusarConsultor = async (id) => {
+        const consultor = consultores.find(c => c.id === id);
+        setConsultores(consultores.map(c => 
+            c.id === id ? { ...c, status: 'recusado' } : c
+        ));
+
+        // Notificação de recusa para o consultor
+        await notificationService.enviarNotificacao(
+            [consultor.email],
+            'Status da Sua Solicitação de Parceria',
+            `Olá ${consultor.nome}, agradecemos seu interesse, mas no momento não poderemos seguir com sua solicitação de parceria.`,
+            'parceria_recusada'
+        );
+    };
+
+    const handleEnviarNotificacao = async () => {
+        if (!notificationData.titulo || !notificationData.mensagem) {
+            alert('Por favor, preencha título e mensagem');
+            return;
+        }
+
+        if (!notificationData.enviarParaLojistas && !notificationData.enviarParaConsultores) {
+            alert('Selecione pelo menos um grupo para enviar a notificação');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            let destinatarios = [];
+
+            if (notificationData.enviarParaLojistas) {
+                destinatarios = [...destinatarios, ...usuarios.filter(u => u.status === 'ativo').map(u => u.email)];
+            }
+
+            if (notificationData.enviarParaConsultores) {
+                destinatarios = [...destinatarios, ...consultores.filter(c => c.status === 'aprovado').map(c => c.email)];
+            }
+
+            if (destinatarios.length === 0) {
+                alert('Nenhum destinatário encontrado para os grupos selecionados');
+                return;
+            }
+
+            await notificationService.enviarNotificacao(
+                destinatarios,
+                notificationData.titulo,
+                notificationData.mensagem,
+                'comunicado_geral'
+            );
+
+            alert(`✅ Notificação enviada para ${destinatarios.length} destinatários!`);
+            setShowNotificationModal(false);
+            setNotificationData({
+                titulo: '',
+                mensagem: '',
+                enviarParaLojistas: true,
+                enviarParaConsultores: false
+            });
+        } catch (error) {
+            alert('❌ Erro ao enviar notificação');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const renderStatusBadge = (status) => {
+        switch (status) {
+            case 'ativo': return <span className={mockStyles.badgeSuccess}>Ativo</span>;
+            case 'inativo': return <span className={mockStyles.badgeDanger}>Inativo</span>;
+            case 'pendente': return <span className={mockStyles.badgeWarning}>Aguardando</span>;
+            case 'aprovado': return <span className={mockStyles.badgeSuccess}>Aprovado</span>;
+            case 'recusado': return <span className={mockStyles.badgeDanger}>Recusado</span>;
+            default: return <span className={mockStyles.badgePrimary}>{status}</span>;
+        }
+    };
+
+    const usuariosAtivos = usuarios.filter(u => u.status === 'ativo').length;
+    const consultoresPendentes = consultores.filter(c => c.status === 'pendente').length;
+
+    return (
+        <div className={mockStyles.pageContainer}>
+            <div className="flex justify-between items-start mb-6">
+                <div>
+                    <h1 className={mockStyles.title}>👥 Gestão de Usuários e Acessos</h1>
+                    <p className={mockStyles.subtitle}>Controle quem pode acessar o painel e quais permissões cada usuário possui.</p>
+                </div>
+                <button 
+                    onClick={() => setShowNotificationModal(true)}
+                    className={mockStyles.buttonPrimary}
+                >
+                    📢 Enviar Notificação
+                </button>
+            </div>
+
+            {/* Cadastro de Novo Usuário Interno */}
+            <section className={mockStyles.sectionCard}>
+                <h2 className={mockStyles.cardTitle}>➕ Adicionar Usuário Interno (Lojista/Vendedor)</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
+                    <div className="col-span-1 md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                        <input 
+                            type="text" 
+                            value={novoNome} 
+                            onChange={(e) => setNovoNome(e.target.value)} 
+                            placeholder="Nome completo" 
+                            className={mockStyles.input} 
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input 
+                            type="email" 
+                            value={novoEmail} 
+                            onChange={(e) => setNovoEmail(e.target.value)} 
+                            placeholder="email@lojista.com" 
+                            className={mockStyles.input} 
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Perfil</label>
+                        <select 
+                            value={novoPerfil} 
+                            onChange={(e) => setNovoPerfil(e.target.value)} 
+                            className={mockStyles.input}
+                        >
+                            <option value="Admin Lojista">Admin Lojista</option>
+                            <option value="Vendedor">Vendedor</option>
+                        </select>
+                    </div>
+                    {novoPerfil === 'Vendedor' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Filial/Unidade</label>
+                            <select 
+                                value={novaFilial} 
+                                onChange={(e) => setNovaFilial(e.target.value)} 
+                                className={mockStyles.input}
+                            >
+                                {filiaisMock.map(filial => (
+                                    <option key={filial} value={filial}>{filial}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <button 
+                        onClick={handleAddUser} 
+                        className={mockStyles.buttonPrimary}
+                        disabled={!novoNome || !novoEmail}
+                    >
+                        Salvar Usuário
+                    </button>
+                </div>
+            </section>
+
+            {/* Tabela de Usuários Internos */}
+            <section className={mockStyles.sectionCard}>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className={mockStyles.cardTitle}>👥 Equipe Interna ({usuarios.length})</h2>
+                    <div className="text-sm text-gray-600">
+                        <span className={mockStyles.badgeSuccess}>{usuariosAtivos} ativos</span>
+                        <span className="mx-2">•</span>
+                        <span className={mockStyles.badgeDanger}>{usuarios.length - usuariosAtivos} inativos</span>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className={mockStyles.tableHeader}>
+                            <tr>
+                                <th className={mockStyles.tableTh}>Nome</th>
+                                <th className={mockStyles.tableTh}>Email</th>
+                                <th className={mockStyles.tableTh}>Perfil</th>
+                                <th className={mockStyles.tableTh}>Filial</th>
+                                <th className={mockStyles.tableTh}>Status</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {usuarios.map(user => (
+                                <tr key={user.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.nome}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">{user.perfil}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.filial}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">{renderStatusBadge(user.status)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                        <button 
+                                            onClick={() => handleToggleStatus(user.id)}
+                                            className={`py-1 px-3 text-xs rounded-lg font-semibold transition-colors ${
+                                                user.status === 'ativo' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                                            } text-white`}
+                                        >
+                                            {user.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            {/* Aprovação de Consultores */}
+            <section className={mockStyles.sectionCard}>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className={mockStyles.cardTitle}>🔍 Solicitações de Consultores Externos ({consultores.length})</h2>
+                    <div className="text-sm text-gray-600">
+                        <span className={mockStyles.badgeWarning}>{consultoresPendentes} pendentes</span>
+                        <span className="mx-2">•</span>
+                        <span className={mockStyles.badgeSuccess}>{consultores.filter(c => c.status === 'aprovado').length} aprovados</span>
+                    </div>
+                </div>
+                <p className="text-gray-600 mb-4 text-sm">Aprove ou recuse os consultores da plataforma que desejam vender seus produtos em parceria.</p>
+                
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className={mockStyles.tableHeader}>
+                            <tr>
+                                <th className={mockStyles.tableTh}>Nome do Consultor</th>
+                                <th className={mockStyles.tableTh}>Email</th>
+                                <th className={mockStyles.tableTh}>Status da Parceria</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {consultores.map(consultor => (
+                                <tr key={consultor.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{consultor.nome}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultor.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">{renderStatusBadge(consultor.status)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                        {consultor.status === 'pendente' ? (
+                                            <>
+                                                <button 
+                                                    onClick={() => handleAprovarConsultor(consultor.id)}
+                                                    className="py-1 px-3 text-xs rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors"
+                                                >
+                                                    Aprovar
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleRecusarConsultor(consultor.id)}
+                                                    className="py-1 px-3 text-xs rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                                >
+                                                    Recusar
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <span className="text-gray-500 text-xs">
+                                                Parceria {consultor.status === 'aprovado' ? 'Ativa' : 'Recusada'}
+                                            </span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            {/* Modal de Notificação */}
+            {showNotificationModal && (
+                <div className={mockStyles.modalOverlay}>
+                    <div className={mockStyles.modalContent}>
+                        <h3 className="text-xl font-bold text-[#2c5aa0] mb-4">📢 Enviar Notificação</h3>
+                        
+                        <div className={mockStyles.notificationForm}>
+                            <div className={mockStyles.formGroup}>
+                                <label className={mockStyles.label}>Título da Notificação</label>
+                                <input
+                                    type="text"
+                                    value={notificationData.titulo}
+                                    onChange={(e) => setNotificationData({...notificationData, titulo: e.target.value})}
+                                    placeholder="Digite o título..."
+                                    className={mockStyles.input}
+                                />
+                            </div>
+
+                            <div className={mockStyles.formGroup}>
+                                <label className={mockStyles.label}>Mensagem</label>
+                                <textarea
+                                    value={notificationData.mensagem}
+                                    onChange={(e) => setNotificationData({...notificationData, mensagem: e.target.value})}
+                                    placeholder="Digite a mensagem..."
+                                    rows="4"
+                                    className={mockStyles.textarea}
+                                />
+                            </div>
+
+                            <div className={mockStyles.checkboxGroup}>
+                                <label className={mockStyles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notificationData.enviarParaLojistas}
+                                        onChange={(e) => setNotificationData({...notificationData, enviarParaLojistas: e.target.checked})}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span>Enviar para Lojistas ({usuarios.filter(u => u.status === 'ativo').length} ativos)</span>
+                                </label>
+
+                                <label className={mockStyles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notificationData.enviarParaConsultores}
+                                        onChange={(e) => setNotificationData({...notificationData, enviarParaConsultores: e.target.checked})}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span>Enviar para Consultores ({consultores.filter(c => c.status === 'aprovado').length} aprovados)</span>
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button
+                                    onClick={() => setShowNotificationModal(false)}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-150"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleEnviarNotificacao}
+                                    disabled={loading}
+                                    className={`px-4 py-2 rounded-lg text-white font-semibold transition duration-150 ${
+                                        loading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                                    }`}
+                                >
+                                    {loading ? 'Enviando...' : '📤 Enviar Notificação'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 export default LojistaUsuarios;
