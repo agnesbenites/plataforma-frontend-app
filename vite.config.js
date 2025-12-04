@@ -6,7 +6,18 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: 'dist',
-    minify: 'esbuild', // ⚡ Mais rápido e já vem com Vite
-    sourcemap: false
+    
+    // Tenta usar terser, se não conseguir, desativa
+    minify: process.env.VITE_MINIFY !== 'false' ? 'terser' : false,
+    
+    sourcemap: false,
+    
+    // Configuração opcional do terser
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log em produção
+        drop_debugger: true
+      }
+    }
   }
 });
