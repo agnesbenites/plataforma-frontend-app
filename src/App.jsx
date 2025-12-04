@@ -19,7 +19,8 @@ import AdminCadastroVendedor from "./pages/AdminDashboard/pages/AdminCadastroVen
 // === CONSULTOR ===
 import ConsultorDashboardLayout, { ConsultorHomePanel } from "./pages/ConsultorDashboard/pages/ConsultorDashboard.jsx";
 import ConsultorRegister from "./pages/ConsultorDashboard/pages/ConsultorRegister.jsx";
-import ConsultantLoginPage from "./pages/ConsultorDashboard/pages/Consultant/ConsultorLogin.jsx";
+// RENOMEADO para evitar conflito de cache no Vercel
+import ConsultorLoginComponente from "./pages/ConsultorDashboard/pages/Consultant/ConsultorLogin.jsx"; 
 
 // CONSULTOR - Componentes
 import QueuePanel from "./pages/ConsultorDashboard/components/QueuePanel.jsx";
@@ -80,7 +81,7 @@ const ProtectedRoute = ({ component: Component, redirectTo }) => {
     return <ComponentWithAuth />;
 };
 
-// ✅ Componente de navegação (sem alterações)
+// ✅ Componente de navegação (sem alterações, mantido para completude)
 const Navigation = () => {
     const location = useLocation();
     const path = location.pathname;
@@ -224,7 +225,8 @@ function App() {
                     <Route path="/admin/cadastro-vendedor" element={<ProtectedRoute component={AdminCadastroVendedor} redirectTo="/admin/cadastro-vendedor" />} />
                     
                     {/* === CONSULTOR === */}
-                    <Route path="/consultor/login" element={<ConsultantLoginPage />} />
+                    {/* Alterado para usar o nome de importação ajustado */}
+                    <Route path="/consultor/login" element={<ConsultorLoginComponente />} />
                     <Route path="/consultor/register" element={<ConsultorRegister />} />
                     <Route path="/consultor/cadastro" element={<ConsultorRegister />} />
                     
