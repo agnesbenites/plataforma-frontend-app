@@ -3,12 +3,10 @@
   "name": "compra-smart-frontend",
   "builds": [
     {
-      "src": "package.json",
+      "src": "app-frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "npm ci && npm run build",
-        "installCommand": "npm ci"
+        "buildCommand": "npm run build"
       }
     }
   ],
@@ -16,19 +14,12 @@
     {
       "src": "/assets/(.*)",
       "headers": {
-        "cache-control": "public, max-age=31536000, immutable",
-        "Content-Type": "application/javascript"
-      }
-    },
-    {
-      "src": "/@(.*)",
-      "headers": {
-        "Content-Type": "application/javascript"
+        "cache-control": "public, max-age=31536000, immutable"
       }
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/app-frontend/dist/index.html"
     }
   ],
   "env": {
