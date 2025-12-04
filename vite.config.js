@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: 'dist',
-    minify: 'terser', // ✅ AGORA vai funcionar porque terser está instalado
+    minify: 'esbuild', // ⚡ Mais rápido e já vem com Vite
     sourcemap: false
   }
 });
