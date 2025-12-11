@@ -1,5 +1,5 @@
 // src/pages/VendedorDashboard/pages/VendedorDashboard.jsx
-// VERSAO CORRIGIDA - Com Integracao de Venda
+// VERSAO ATUALIZADA - Com Gerenciador de Pedidos
 
 import React from "react";
 import { Routes, Route, Outlet, Link, useNavigate, useLocation } from "react-router-dom";
@@ -22,6 +22,9 @@ import ReportPanel from "../components/ReportPanel";
 // Importar a pagina de Integracao de Venda do Lojista (compartilhada)
 import IntegracaoVenda from "../../LojistaDashboard/pages/IntegracaoVenda";
 
+// Importar o GerenciadorPedidos da pasta shared
+import GerenciadorPedidos from "../../../shared/components/GerenciadorPedidos";
+
 // =============================================================
 // === CORES E CONSTANTES ===
 // =============================================================
@@ -32,14 +35,15 @@ const VENDOR_LIGHT_BG = "#eaf2ff";
 
 // === DADOS DE NAVEGACAO DO VENDEDOR (SIDEBAR) ===
 const VENDEDOR_MENU_ITEMS = [
-    { title: "Dashboard", rota: "/vendedor/dashboard", icon: "&#127968;" },
-    { title: "Atendimento", rota: "/vendedor/dashboard/atendimento", icon: "&#128172;" },
-    { title: "Integrar Venda", rota: "/vendedor/dashboard/integracao", icon: "&#128179;" },
-    { title: "Meus Clientes", rota: "/vendedor/dashboard/clientes", icon: "&#128101;" },
-    { title: "Catalogo", rota: "/vendedor/dashboard/produtos", icon: "&#128230;" },
-    { title: "Relatorios", rota: "/vendedor/dashboard/relatorio", icon: "&#128202;" },
-    { title: "Treinamentos", rota: "/vendedor/dashboard/treinamentos", icon: "&#127891;" },
-    { title: "Report", rota: "/vendedor/dashboard/report", icon: "&#128221;" },
+    { title: "Dashboard", rota: "/vendedor/dashboard", icon: "&#127968;", destaque: false },
+    { title: "Pedidos", rota: "/vendedor/dashboard/pedidos", icon: "&#128230;", destaque: true },
+    { title: "Atendimento", rota: "/vendedor/dashboard/atendimento", icon: "&#128172;", destaque: false },
+    { title: "Integrar Venda", rota: "/vendedor/dashboard/integracao", icon: "&#128179;", destaque: false },
+    { title: "Meus Clientes", rota: "/vendedor/dashboard/clientes", icon: "&#128101;", destaque: false },
+    { title: "Catalogo", rota: "/vendedor/dashboard/produtos", icon: "&#128722;", destaque: false },
+    { title: "Relatorios", rota: "/vendedor/dashboard/relatorio", icon: "&#128202;", destaque: false },
+    { title: "Treinamentos", rota: "/vendedor/dashboard/treinamentos", icon: "&#127891;", destaque: false },
+    { title: "Report", rota: "/vendedor/dashboard/report", icon: "&#128221;", destaque: false },
 ];
 
 // === DADOS MOCKADOS DE CAMPANHAS ===
@@ -69,6 +73,13 @@ export const VendedorHomePanel = () => {
 
     const atalhos = [
         {
+            titulo: "Pedidos",
+            descricao: "Gerenciar pedidos e separacao",
+            cor: "#ffc107",
+            rota: "/vendedor/dashboard/pedidos",
+            icon: "&#128230;"
+        },
+        {
             titulo: "Novo Atendimento",
             descricao: "Atender cliente na minha loja",
             cor: VENDOR_PRIMARY,
@@ -83,16 +94,9 @@ export const VendedorHomePanel = () => {
             icon: "&#128179;"
         },
         {
-            titulo: "Catalogo da Loja",
-            descricao: "Ver produtos disponiveis",
-            cor: "#17a2b8",
-            rota: "/vendedor/dashboard/produtos",
-            icon: "&#128230;"
-        },
-        {
             titulo: "Performance",
             descricao: "Acompanhar desempenho e metas",
-            cor: "#fd7e14",
+            cor: "#17a2b8",
             rota: "/vendedor/dashboard/relatorio",
             icon: "&#128202;"
         }
@@ -212,13 +216,20 @@ export const VendedorHomePanel = () => {
                     {atalhos.map((atalho, index) => (
                         <div
                             key={index}
+                            style={vendedorStyles.fastAccessCard}
                             onClick={() => navigate(atalho.rota)}
-                            style={{ ...vendedorStyles.fastAccessCard, borderLeft: `4px solid ${atalho.cor}`, cursor: 'pointer' }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                            }}
                         >
-                            <div 
-                                style={{ fontSize: "2rem", marginBottom: "10px" }}
-                                dangerouslySetInnerHTML={{ __html: atalho.icon }}
-                            />
+                            <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>
+                                <span dangerouslySetInnerHTML={{ __html: atalho.icon }} />
+                            </div>
                             <h3 style={{ ...vendedorStyles.fastAccessTitle, color: atalho.cor }}>
                                 {atalho.titulo}
                             </h3>
@@ -234,31 +245,32 @@ export const VendedorHomePanel = () => {
 };
 
 // =============================================================
-// === PAGINAS PLACEHOLDER (para as que nao existem ainda) ===
+// === PAGINAS PLACEHOLDER ===
 // =============================================================
 const VendedorClientesPage = () => (
-    <div style={{ padding: "30px", backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 5px 20px rgba(0,0,0,0.08)' }}>
-        <h1 style={{ color: VENDOR_PRIMARY, fontSize: '2rem', marginBottom: '10px' }}>Meus Clientes</h1>
-        <p style={{ color: '#6c757d' }}>Lista de clientes atendidos.</p>
+    <div style={{ padding: "20px", backgroundColor: "white", borderRadius: "10px" }}>
+        <h2 style={{ color: VENDOR_PRIMARY }}>Meus Clientes</h2>
+        <p>Lista de clientes atendidos na loja.</p>
     </div>
 );
 
 const VendedorProdutosPage = () => (
-    <div style={{ padding: "30px", backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 5px 20px rgba(0,0,0,0.08)' }}>
-        <h1 style={{ color: VENDOR_PRIMARY, fontSize: '2rem', marginBottom: '10px' }}>Catalogo de Produtos</h1>
-        <p style={{ color: '#6c757d' }}>Produtos disponiveis na loja.</p>
+    <div style={{ padding: "20px", backgroundColor: "white", borderRadius: "10px" }}>
+        <h2 style={{ color: VENDOR_PRIMARY }}>Catalogo da Loja</h2>
+        <p>Produtos disponiveis para venda na sua loja.</p>
     </div>
 );
 
 // =============================================================
-// === COMPONENTE LAYOUT DO VENDEDOR ===
+// === LAYOUT DO DASHBOARD ===
 // =============================================================
 const VendedorDashboardLayout = () => {
     const location = useLocation();
     const currentPath = location.pathname;
-    const userName = localStorage.getItem("userName") || "Ana Vendedora";
+    const vendedorNome = localStorage.getItem("vendedorNome") || "Vendedor";
 
-    const getMenuItemStyle = (rota) => {
+    const getMenuItemStyle = (item) => {
+        const rota = item.rota;
         const isExactMatch = rota === currentPath;
         const isPrefixMatch = currentPath.startsWith(rota + "/");
 
@@ -270,55 +282,48 @@ const VendedorDashboardLayout = () => {
             isActive = isExactMatch || isPrefixMatch;
         }
 
-        return isActive ? vendedorStyles.menuItemActive : vendedorStyles.menuItem;
+        if (item.destaque) {
+            return isActive ? sidebarStyles.menuItemDestaqueActive : sidebarStyles.menuItemDestaque;
+        }
+
+        return isActive ? sidebarStyles.menuItemActive : sidebarStyles.menuItem;
     };
 
     return (
-        <div style={vendedorStyles.dashboardContainer}>
-            <div style={vendedorStyles.sidebar}>
-                <h2 style={vendedorStyles.logoTitle}>Smart Seller</h2>
-
+        <div style={sidebarStyles.dashboardContainer}>
+            <div style={sidebarStyles.sidebar}>
+                <h2 style={sidebarStyles.logoTitle}>CompraSmart Vendedor</h2>
                 <nav>
                     {VENDEDOR_MENU_ITEMS.map((item) => (
-                        <Link
-                            key={item.rota}
-                            to={item.rota}
-                            style={getMenuItemStyle(item.rota)}
-                        >
-                            <span 
-                                style={{ marginRight: "8px" }}
-                                dangerouslySetInnerHTML={{ __html: item.icon }}
-                            />
+                        <Link key={item.rota} to={item.rota} style={getMenuItemStyle(item)}>
+                            <span dangerouslySetInnerHTML={{ __html: item.icon }} style={{ marginRight: "10px" }} />
                             {item.title}
                         </Link>
                     ))}
                     <Link
                         to="/vendedor/dashboard/profile"
-                        style={getMenuItemStyle("/vendedor/dashboard/profile")}
+                        style={getMenuItemStyle({ rota: "/vendedor/dashboard/profile", destaque: false })}
                     >
-                        <span style={{ marginRight: "8px" }}>&#128100;</span>
+                        <span dangerouslySetInnerHTML={{ __html: "&#128100;" }} style={{ marginRight: "10px" }} />
                         Meu Perfil
                     </Link>
                 </nav>
             </div>
 
-            <main style={vendedorStyles.mainContent}>
-                <header style={vendedorStyles.header}>
+            <main style={sidebarStyles.mainContent}>
+                <header style={sidebarStyles.header}>
                     <div>
-                        <h1 style={vendedorStyles.headerTitle}>Painel do Vendedor</h1>
-                        <p style={vendedorStyles.headerSubtitle}>
-                            Bem-vindo(a), {userName} | <strong>Vendedor Vinculado</strong> - Atende apenas uma loja
-                        </p>
+                        <h1 style={sidebarStyles.headerTitle}>Dashboard Vendedor</h1>
+                        <p style={sidebarStyles.headerSubtitle}>Bem-vindo, {vendedorNome}</p>
                     </div>
-                    <Link
-                        to="/vendedor/dashboard/profile"
-                        style={vendedorStyles.profileButton}
-                    >
-                        <span style={vendedorStyles.profileName}>Meu Perfil</span>
+                    <Link to="/vendedor/dashboard/profile" style={sidebarStyles.profileButton}>
+                        <span style={sidebarStyles.profileName}>
+                            <span dangerouslySetInnerHTML={{ __html: "&#128100;" }} /> Meu Perfil
+                        </span>
                     </Link>
                 </header>
 
-                <div style={{ padding: '20px' }}>
+                <div style={{ padding: "20px" }}>
                     <Outlet />
                 </div>
             </main>
@@ -327,13 +332,13 @@ const VendedorDashboardLayout = () => {
 };
 
 // =============================================================
-// === ESTILOS DO VENDEDOR ===
+// === ESTILOS DO SIDEBAR ===
 // =============================================================
-const vendedorStyles = {
+const sidebarStyles = {
     dashboardContainer: {
         display: "flex",
         minHeight: "100vh",
-        backgroundColor: VENDOR_SECONDARY,
+        backgroundColor: "#f4f7f9",
     },
     sidebar: {
         width: "250px",
@@ -344,7 +349,7 @@ const vendedorStyles = {
         boxShadow: "4px 0 10px rgba(0,0,0,0.05)",
     },
     logoTitle: {
-        fontSize: "1.5rem",
+        fontSize: "1.4rem",
         padding: "10px 20px 30px",
         textAlign: "center",
         borderBottom: "1px solid #eee",
@@ -373,6 +378,34 @@ const vendedorStyles = {
         color: VENDOR_PRIMARY,
         fontWeight: "700",
         borderLeft: `3px solid ${VENDOR_PRIMARY}`,
+        borderRadius: "0 50px 50px 0",
+        marginRight: "20px",
+        marginBottom: "5px",
+        textDecoration: "none",
+    },
+    menuItemDestaque: {
+        display: "flex",
+        alignItems: "center",
+        padding: "12px 20px",
+        color: "#fff",
+        textDecoration: "none",
+        transition: "all 0.2s",
+        fontSize: "15px",
+        borderLeft: "3px solid #ffc107",
+        backgroundColor: "#ffc107",
+        borderRadius: "0 50px 50px 0",
+        marginRight: "20px",
+        marginBottom: "5px",
+        fontWeight: "600",
+    },
+    menuItemDestaqueActive: {
+        display: "flex",
+        alignItems: "center",
+        padding: "12px 20px",
+        backgroundColor: "#e6ac00",
+        color: "#fff",
+        fontWeight: "700",
+        borderLeft: "3px solid #cc9900",
         borderRadius: "0 50px 50px 0",
         marginRight: "20px",
         marginBottom: "5px",
@@ -419,6 +452,12 @@ const vendedorStyles = {
     profileName: {
         fontSize: "1rem",
     },
+};
+
+// =============================================================
+// === ESTILOS DO VENDEDOR HOME ===
+// =============================================================
+const vendedorStyles = {
     vendedorHeaderCard: {
         backgroundColor: "white",
         padding: "25px",
@@ -561,6 +600,7 @@ export default function VendedorDashboard() {
                 <Route path="dashboard" element={<VendedorHomePanel />} />
                 
                 {/* Sub-rotas */}
+                <Route path="dashboard/pedidos" element={<GerenciadorPedidos tipoUsuario="vendedor" />} />
                 <Route path="dashboard/atendimento" element={<VendedorAtendimentoPage />} />
                 <Route path="dashboard/integracao" element={<IntegracaoVenda />} />
                 <Route path="dashboard/clientes" element={<VendedorClientesPage />} />

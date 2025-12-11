@@ -1,11 +1,11 @@
 // src/pages/LojistaDashboard/pages/LojistaDashboard.jsx
-// VERSAO CORRIGIDA - Com Routes internas e importacoes dos componentes reais
+// VERSAO ATUALIZADA - Com Gerenciador de Pedidos
 
 import React from "react";
 import { Routes, Route, Outlet, Link, useLocation } from "react-router-dom";
 
 // =============================================================
-// === IMPORTACOES DOS COMPONENTES/PGINAS REAIS ===
+// === IMPORTACOES DOS COMPONENTES/PAGINAS REAIS ===
 // =============================================================
 import LojistaHomePanel from "./LojistaHomePanel";
 import LojistaProdutosEstoque from "./LojistaProdutosEstoque";
@@ -25,6 +25,9 @@ import TrainingManagementPanel from "../components/TrainingManagementPanel";
 
 // Importar o ReportPanelLojista da pasta components
 import ReportPanelLojista from "../components/ReportPanelLojista";
+
+// Importar o GerenciadorPedidos da pasta shared
+import GerenciadorPedidos from "../../../shared/components/GerenciadorPedidos";
 
 // =============================================================
 // === ESTILOS ===
@@ -90,6 +93,30 @@ const styles = {
         marginRight: '20px',
         textDecoration: "none",
     },
+    menuItemDestaque: {
+        display: "block",
+        padding: "12px 20px",
+        color: "#fff",
+        textDecoration: "none",
+        transition: "all 0.2s",
+        fontSize: '15px',
+        borderLeft: '3px solid #ffc107',
+        backgroundColor: "#ffc107",
+        borderRadius: '0 50px 50px 0',
+        marginRight: '20px',
+        fontWeight: '600',
+    },
+    menuItemDestaqueActive: {
+        display: "block",
+        padding: "12px 20px",
+        backgroundColor: "#e6ac00",
+        color: "#fff",
+        fontWeight: "700",
+        borderLeft: '3px solid #cc9900',
+        borderRadius: '0 50px 50px 0',
+        marginRight: '20px',
+        textDecoration: "none",
+    },
     mainContent: {
         flexGrow: 1,
         width: "calc(100% - 250px)",
@@ -135,18 +162,19 @@ const styles = {
 
 // === DADOS DE NAVEGACAO ===
 const menuItems = [
-    { title: "  Dashboard", rota: "/lojista/dashboard" },
-    { title: " Produtos e Estoque", rota: "/lojista/dashboard/produtos" },
-    { title: " Usuarios", rota: "/lojista/dashboard/usuarios" },
-    { title: " Vendedores", rota: "/lojista/dashboard/vendedores" },
-    { title: " Consultores", rota: "/lojista/dashboard/consultores" },
-    { title: " Filiais", rota: "/lojista/dashboard/filiais" },
-    { title: " QR Codes", rota: "/lojista/dashboard/qrcode" },
-    { title: " Pagamentos", rota: "/lojista/dashboard/pagamentos" },
-    { title: " Relatorios", rota: "/lojista/dashboard/relatorios" },
-    { title: " Treinamentos", rota: "/lojista/dashboard/treinamentos" },
-    { title: " Cadastro", rota: "/lojista/dashboard/cadastro" },
-    { title: "  Report", rota: "/lojista/dashboard/report" },
+    { title: "Dashboard", rota: "/lojista/dashboard", icon: "&#127968;", destaque: false },
+    { title: "Pedidos", rota: "/lojista/dashboard/pedidos", icon: "&#128230;", destaque: true },
+    { title: "Produtos e Estoque", rota: "/lojista/dashboard/produtos", icon: "&#128722;", destaque: false },
+    { title: "Usuarios", rota: "/lojista/dashboard/usuarios", icon: "&#128101;", destaque: false },
+    { title: "Vendedores", rota: "/lojista/dashboard/vendedores", icon: "&#128188;", destaque: false },
+    { title: "Consultores", rota: "/lojista/dashboard/consultores", icon: "&#129333;", destaque: false },
+    { title: "Filiais", rota: "/lojista/dashboard/filiais", icon: "&#127970;", destaque: false },
+    { title: "QR Codes", rota: "/lojista/dashboard/qrcode", icon: "&#128242;", destaque: false },
+    { title: "Pagamentos", rota: "/lojista/dashboard/pagamentos", icon: "&#128179;", destaque: false },
+    { title: "Relatorios", rota: "/lojista/dashboard/relatorios", icon: "&#128202;", destaque: false },
+    { title: "Treinamentos", rota: "/lojista/dashboard/treinamentos", icon: "&#127891;", destaque: false },
+    { title: "Cadastro", rota: "/lojista/dashboard/cadastro", icon: "&#128221;", destaque: false },
+    { title: "Report", rota: "/lojista/dashboard/report", icon: "&#128203;", destaque: false },
 ];
 
 // === COMPONENTE LAYOUT ===
@@ -155,7 +183,8 @@ const LojistaDashboardLayout = () => {
     const currentPath = location.pathname;
     const empresaNome = localStorage.getItem('lojistaNome') || "Minha Empresa";
 
-    const getMenuItemStyle = (rota) => {
+    const getMenuItemStyle = (item) => {
+        const rota = item.rota;
         const isExactMatch = rota === currentPath;
         const isPrefixMatch = currentPath.startsWith(rota + '/');
 
@@ -167,17 +196,21 @@ const LojistaDashboardLayout = () => {
             isActive = isExactMatch || isPrefixMatch;
         }
 
+        if (item.destaque) {
+            return isActive ? styles.menuItemDestaqueActive : styles.menuItemDestaque;
+        }
+
         return isActive ? styles.menuItemActive : styles.menuItem;
     };
 
     return (
         <div style={styles.dashboardContainer}>
             <div style={styles.sidebar}>
-                <h2 style={styles.logoTitle}>Agnes Lojista</h2>
+                <h2 style={styles.logoTitle}>CompraSmart Lojista</h2>
 
                 <div style={styles.topAction}>
                     <Link to="/lojista/dashboard/integracao" style={styles.integrationButton}>
-                        ¨ Integrar Nova Venda
+                        &#128179; Integrar Nova Venda
                     </Link>
                 </div>
 
@@ -186,16 +219,16 @@ const LojistaDashboardLayout = () => {
                         <Link
                             key={item.rota}
                             to={item.rota}
-                            style={getMenuItemStyle(item.rota)}
+                            style={getMenuItemStyle(item)}
                         >
-                            {item.title}
+                            <span dangerouslySetInnerHTML={{ __html: item.icon }} /> {item.title}
                         </Link>
                     ))}
                     <Link
                         to="/lojista/dashboard/profile"
-                        style={getMenuItemStyle("/lojista/dashboard/profile")}
+                        style={getMenuItemStyle({ rota: "/lojista/dashboard/profile", destaque: false })}
                     >
-                         Meu Perfil
+                        &#128100; Meu Perfil
                     </Link>
                 </nav>
             </div>
@@ -207,7 +240,7 @@ const LojistaDashboardLayout = () => {
                         <p style={styles.headerSubtitle}>Bem-vindo, {empresaNome}</p>
                     </div>
                     <Link to="/lojista/dashboard/profile" style={styles.profileButton}>
-                        <span style={styles.profileName}> Meu Perfil</span>
+                        <span style={styles.profileName}>&#128100; Meu Perfil</span>
                     </Link>
                 </header>
 
@@ -236,7 +269,7 @@ export const ComponenteFallback = () => (
             borderBottom: '2px solid #eee',
             paddingBottom: '10px'
         }}>
-             Pagina em Desenvolvimento
+            Pagina em Desenvolvimento
         </h1>
         <p style={{ color: '#6c757d', fontSize: '1rem' }}>
             Esta funcionalidade estara disponivel em breve!
@@ -258,6 +291,7 @@ export default function LojistaDashboard() {
                 <Route path="dashboard" element={<LojistaHomePanel />} />
                 
                 {/* Sub-rotas - USANDO OS COMPONENTES IMPORTADOS */}
+                <Route path="dashboard/pedidos" element={<GerenciadorPedidos tipoUsuario="lojista" />} />
                 <Route path="dashboard/produtos" element={<LojistaProdutosEstoque />} />
                 <Route path="dashboard/usuarios" element={<LojistaUsuarios />} />
                 <Route path="dashboard/vendedores" element={<LojistaVendedores />} />
