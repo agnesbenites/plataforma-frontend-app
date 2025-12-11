@@ -1,5 +1,5 @@
 // app-frontend/src/pages/Landingpage.jsx
-// Landing Page da Compra Smart - VERSAO CORRIGIDA
+// Landing Page da Compra Smart - VERSAO FINAL COM STRIPE
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import {
   FaStore, FaUserTie, FaShoppingCart, FaChartLine, 
   FaUsers, FaBox, FaBullhorn, FaMoneyBillWave,
   FaClock, FaCheckCircle, FaDollarSign, FaRocket,
-  FaMobileAlt, FaDesktop, FaRegCheckCircle
+  FaMobileAlt, FaDesktop, FaRegCheckCircle, FaPlus
 } from 'react-icons/fa';
 
 // --- COMPONENTES AUXILIARES ---
@@ -80,7 +80,7 @@ const PlanCard = ({ name, price, period, description, features, color, highlight
     </ul>
     
     <button onClick={onBuy} style={{...styles.planButton, backgroundColor: highlighted ? '#F4D03F' : '#5DADE2', color: highlighted ? '#1A2332' : 'white'}}>
-      COMPRAR AGORA
+      ASSINAR AGORA
     </button>
   </div>
 );
@@ -92,14 +92,14 @@ const Landingpage = () => {
     document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // LINKS REAIS DO STRIPE
   const STRIPE_URLS = {
-    BASIC: 'https://buy.stripe.com/test_xxx',
-    PRO: 'https://buy.stripe.com/test_yyy',
-    ENTERPRISE: 'https://buy.stripe.com/test_zzz',
+    BASICO: 'https://buy.stripe.com/00w7sL2z6ceE11cd8ZgQE01',
+    PRO: 'https://buy.stripe.com/dRm8wP7Tq1A011c1qhgQE02',
+    ENTERPRISE: 'https://buy.stripe.com/3cI3cv2z6fqQaBM8SJgQE03',
   };
 
-  const handleStripeCheckout = (planName, stripeLink) => {
-    alert(`Redirecionando para Stripe Checkout do Plano ${planName}...`);
+  const handleStripeCheckout = (stripeLink) => {
     window.location.href = stripeLink; 
   };
 
@@ -378,13 +378,13 @@ const Landingpage = () => {
                 period="POR MES"
                 description="Ideal para pequenos negocios ou que tenham produtos personalizados"
                 features={[
-                  "Chat para mensagens ilimitado entre seus clientes e consultores",
+                  "Chat para mensagens ilimitado",
                   "Analytics e metricas simples",
                   "Cadastre ate 100 produtos",
                   "Cadastre ate 2 filiais"
                 ]}
                 color="#2C3E50"
-                onBuy={() => handleStripeCheckout('Basico', STRIPE_URLS.BASIC)}
+                onBuy={() => handleStripeCheckout(STRIPE_URLS.BASICO)}
               />
 
               {/* PRO */}
@@ -392,16 +392,16 @@ const Landingpage = () => {
                 name="PRO"
                 price="R$ 199,90"
                 period="POR MES"
-                description="Para negocios em expansao, mais consolidados e que precisam de mais dados"
+                description="Para negocios em expansao que precisam de mais recursos"
                 features={[
-                  "Chat para mensagens ilimitado entre seus clientes e consultores + 6 video chamadas por mes",
+                  "Chat ilimitado + 6 video chamadas/mes",
                   "Analytics e metricas detalhadas",
                   "Cadastre ate 500 produtos",
                   "Cadastre ate 5 filiais"
                 ]}
                 color="#2C3E50"
                 highlighted
-                onBuy={() => handleStripeCheckout('PRO', STRIPE_URLS.PRO)}
+                onBuy={() => handleStripeCheckout(STRIPE_URLS.PRO)}
               />
 
               {/* ENTERPRISE */}
@@ -409,17 +409,52 @@ const Landingpage = () => {
                 name="ENTERPRISE"
                 price="R$ 499,00"
                 period="POR MES"
-                description="Negocios que ja estao consolidados e com equipe grande."
+                description="Para negocios consolidados com equipe grande"
                 features={[
                   "Todos os tipos de mensagem ilimitados",
-                  "Analytics e metricas detalhadas",
+                  "Analytics e metricas avancadas",
                   "Cadastre ate 1000 produtos",
-                  "Cadastre ate 30 filiais",
-                  "Integracao com ERP"
+                  "Ate 30 filiais + Integracao ERP"
                 ]}
                 color="#2C3E50"
-                onBuy={() => handleStripeCheckout('ENTERPRISE', STRIPE_URLS.ENTERPRISE)}
+                onBuy={() => handleStripeCheckout(STRIPE_URLS.ENTERPRISE)}
               />
+            </div>
+          </div>
+
+          {/* PACOTES ADICIONAIS */}
+          <div style={styles.adicionaisSection}>
+            <div style={styles.adicionaisCard}>
+              <div style={styles.adicionaisIcon}>
+                <FaPlus size={30} color="#F4D03F" />
+              </div>
+              <div style={styles.adicionaisContent}>
+                <h3 style={styles.adicionaisTitulo}>Quer mais recursos?</h3>
+                <p style={styles.adicionaisTexto}>
+                  Alem dos planos, oferecemos <strong>pacotes adicionais</strong> para potencializar ainda mais seu negocio:
+                </p>
+                <div style={styles.adicionaisLista}>
+                  <div style={styles.adicionalItem}>
+                    <FaBullhorn color="#5DADE2" size={20} />
+                    <span><strong>Campanhas de Marketing</strong> - Destaque seus produtos para mais clientes</span>
+                  </div>
+                  <div style={styles.adicionalItem}>
+                    <FaUsers color="#48C9B0" size={20} />
+                    <span><strong>Consultores Extras</strong> - Aumente sua equipe de vendas</span>
+                  </div>
+                  <div style={styles.adicionalItem}>
+                    <FaChartLine color="#F7DC6F" size={20} />
+                    <span><strong>Relatorios Avancados</strong> - Insights detalhados do seu negocio</span>
+                  </div>
+                  <div style={styles.adicionalItem}>
+                    <FaBox color="#E74C3C" size={20} />
+                    <span><strong>Produtos Extras</strong> - Cadastre mais itens no catalogo</span>
+                  </div>
+                </div>
+                <p style={styles.adicionaisNota}>
+                  &#128161; Acesse a <strong>pagina de Pagamentos</strong> dentro da sua Dashboard para ver todos os pacotes disponiveis e contratar!
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -860,6 +895,72 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.3s',
     marginTop: '20px',
+  },
+
+  // PACOTES ADICIONAIS
+  adicionaisSection: {
+    marginTop: '60px',
+  },
+  adicionaisCard: {
+    backgroundColor: 'white',
+    borderRadius: '20px',
+    padding: '40px',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
+    display: 'flex',
+    gap: '30px',
+    alignItems: 'flex-start',
+    border: '3px solid #F4D03F',
+  },
+  adicionaisIcon: {
+    width: '70px',
+    height: '70px',
+    backgroundColor: '#1A2332',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  adicionaisContent: {
+    flex: 1,
+    textAlign: 'left',
+  },
+  adicionaisTitulo: {
+    fontSize: '1.6rem',
+    fontWeight: 'bold',
+    color: '#1A2332',
+    marginBottom: '15px',
+    marginTop: 0,
+  },
+  adicionaisTexto: {
+    fontSize: '1rem',
+    color: '#666',
+    marginBottom: '20px',
+    lineHeight: 1.6,
+  },
+  adicionaisLista: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '15px',
+    marginBottom: '25px',
+  },
+  adicionalItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 15px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '10px',
+    fontSize: '0.95rem',
+  },
+  adicionaisNota: {
+    fontSize: '0.95rem',
+    color: '#2C5AA0',
+    backgroundColor: '#e3f2fd',
+    padding: '15px 20px',
+    borderRadius: '10px',
+    marginTop: '10px',
+    marginBottom: 0,
   },
   
   // Footer
