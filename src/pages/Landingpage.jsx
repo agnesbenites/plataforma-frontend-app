@@ -1,5 +1,5 @@
 // app-frontend/src/pages/Landingpage.jsx
-// Landing Page da Compra Smart - VERSAO FINAL COM STRIPE
+// Landing Page da Compra Smart - VERSAO COM IMAGENS SEPARADAS
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -38,22 +38,6 @@ const OfferingCard = ({ title, icon, features, color }) => (
           </li>
         ))}
       </ul>
-    </div>
-);
-
-const BenefitCard = ({ title, icon, description, color }) => (
-    <div style={styles.benefitCard}>
-      <div style={styles.benefitIcon}>{icon}</div>
-      <h4 style={styles.benefitTitle}>{title}</h4>
-      <p style={styles.benefitDescription}>{description}</p>
-    </div>
-);
-
-const ConsultorBenefit = ({ icon, title, description }) => (
-    <div style={styles.consultorBenefit}>
-      <div style={styles.consultorBenefitIcon}>{icon}</div>
-      <h4 style={styles.consultorBenefitTitle}>{title}</h4>
-      <p style={styles.consultorBenefitDescription}>{description}</p>
     </div>
 );
 
@@ -139,12 +123,23 @@ const Landingpage = () => {
         />
       </section>
 
-      {/* BENEFICIOS - IMAGEM PROPORCIONAL */}
-      <section style={styles.beneficiosImageSection}>
-        <div style={styles.beneficiosContainer}>
+      {/* BENEFICIOS PARA LOJISTAS */}
+      <section style={styles.beneficiosSection}>
+        <div style={styles.beneficiosWrapper}>
           <img 
-            src="/img/beneficios-lojistas-consultores.png" 
-            alt="Beneficios para Lojistas e Consultores" 
+            src="/img/Para-Lojistas.png" 
+            alt="Beneficios para Lojistas - Multiplique seu alcance e suas vendas" 
+            style={styles.beneficiosImage}
+          />
+        </div>
+      </section>
+
+      {/* BENEFICIOS PARA CONSULTORES */}
+      <section style={styles.beneficiosSectionAlt}>
+        <div style={styles.beneficiosWrapper}>
+          <img 
+            src="/img/Para-Consultores.png" 
+            alt="Beneficios para Consultores - Liberdade e renda extra" 
             style={styles.beneficiosImage}
           />
         </div>
@@ -238,86 +233,6 @@ const Landingpage = () => {
               "Plataforma facil e intuitiva para todos"
             ]}
             color="#F7DC6F"
-          />
-        </div>
-      </section>
-
-      {/* PARA LOJISTAS */}
-      <section style={{...styles.section, backgroundColor: '#ECF0F1', maxWidth: '100%', padding: '80px 20px'}}>
-        <div style={{maxWidth: '1200px', margin: '0 auto'}}>
-          <h2 style={styles.sectionTitle}>Para Lojistas:</h2>
-          <p style={styles.sectionSubtitle}>
-            MULTIPLIQUE SEU ALCANCE E SUAS VENDAS
-          </p>
-
-          <div style={styles.benefitsGrid}>
-            <BenefitCard
-              title="Publico Alvo na Mao"
-              icon="&#128101;"
-              description="Alcance clientes que nao sabiam que sua loja tinha o produto. Os consultores levam seu estoque exatamente para o publico que esta buscando."
-              color="#F7DC6F"
-            />
-            <BenefitCard
-              title="Zero Estoque Parado"
-              icon="&#128230;"
-              description="Faca a gestao inteligente e venda rapidamente itens que estao ocupando espaco, transformando produto parado em capital de giro."
-              color="#F7DC6F"
-            />
-            <BenefitCard
-              title="Comissao Flexivel"
-              icon="&#128176;"
-              description="Defina e ajuste a comissao que voce paga aos consultores por venda, garantindo que o custo de aquisicao do cliente esteja sempre sob seu controle."
-              color="#F7DC6F"
-            />
-            <BenefitCard
-              title="Gestao Centralizada"
-              icon="&#128202;"
-              description="Acompanhe todas as suas vendas e o desempenho dos consultores em um unico dashboard de gestao, com recebimento automatizado via Stripe."
-              color="#F7DC6F"
-            />
-            <BenefitCard
-              title="Vendas Especializada"
-              icon="&#128722;"
-              description="Autorize consultores que entendem profundamente de seus produtos a vende-los, garantindo que o cliente receba a orientacao tecnica correta."
-              color="#F7DC6F"
-            />
-            <BenefitCard
-              title="Campanhas de Sucesso"
-              icon="&#128227;"
-              description="Crie promocoes e campanhas exclusivas dentro da plataforma, potencializando a saida de produtos especificos."
-              color="#F7DC6F"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* PARA CONSULTORES */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>Para Consultores:</h2>
-        <p style={styles.sectionSubtitle}>
-          TRANSFORME SEU CONHECIMENTO EM LUCRO. SEJA UM ESPECIALISTA DE VENDAS E TRABALHE DE FORMA FLEXIVEL.
-        </p>
-
-        <div style={styles.consultorBenefits}>
-          <ConsultorBenefit
-            icon={<FaClock size={50} color="#F7DC6F" />}
-            title="Flexibilidade Total"
-            description="Trabalhe de onde quiser, defina seus horarios e a quantidade de tempo que deseja dedicar."
-          />
-          <ConsultorBenefit
-            icon={<FaCheckCircle size={50} color="#F7DC6F" />}
-            title="Escolha o Seu Segmento"
-            description="Selecione as lojas e os segmentos de produtos que voce realmente domina e tem paixao em vender."
-          />
-          <ConsultorBenefit
-            icon={<FaDollarSign size={50} color="#F7DC6F" />}
-            title="Comissao Direta"
-            description="Receba sua comissao de forma transparente e segura, diretamente na sua conta, atraves do Stripe."
-          />
-          <ConsultorBenefit
-            icon={<FaRocket size={50} color="#F7DC6F" />}
-            title="Seja um consultor digital do varejo fisico"
-            description="Una experiencia em vendas ao potencial do e-commerce, sem abrir uma loja. Represente marcas, atenda clientes online e receba comissoes pelo que vender."
           />
         </div>
       </section>
@@ -558,7 +473,6 @@ const styles = {
   // Hero - TELA CHEIA
   hero: {
     width: '100%',
-    minHeight: '60vh',
     margin: '0',
     backgroundColor: '#A8E6CF', 
     display: 'flex',
@@ -573,24 +487,37 @@ const styles = {
     objectFit: 'cover',
   },
   
-  // Secao de Beneficios - PROPORCIONAL
-  beneficiosImageSection: {
+  // Secao de Beneficios - LOJISTAS (fundo claro)
+  beneficiosSection: {
     width: '100%',
-    backgroundColor: 'white',
+    backgroundColor: '#f8f9fa',
     padding: '60px 20px',
     margin: '0',
   },
-  beneficiosContainer: {
-    maxWidth: '1200px',
-    margin: '0 auto',
+  
+  // Secao de Beneficios - CONSULTORES (fundo branco)
+  beneficiosSectionAlt: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    padding: '60px 20px',
+    margin: '0',
   },
+  
+  beneficiosWrapper: {
+    maxWidth: '1000px',
+    margin: '0 auto',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  
   beneficiosImage: {
     width: '100%',
-    maxWidth: '100%',
+    maxWidth: '900px',
     height: 'auto',
     display: 'block',
     borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+    transition: 'transform 0.3s ease',
   },
 
   // Secao Padrao
@@ -686,64 +613,6 @@ const styles = {
     color: '#2C3E50',
     display: 'flex',
     alignItems: 'center',
-  },
-  
-  // Benefits (PARA LOJISTAS)
-  benefitsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '25px',
-    marginTop: '50px',
-  },
-  benefitCard: {
-    padding: '30px',
-    backgroundColor: 'white',
-    borderRadius: '15px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-    textAlign: 'left',
-  },
-  benefitIcon: {
-    fontSize: '3rem',
-    marginBottom: '15px',
-  },
-  benefitTitle: {
-    fontSize: '1.4rem',
-    fontWeight: 'bold',
-    color: '#1A2332',
-    marginBottom: '15px',
-  },
-  benefitDescription: {
-    fontSize: '1rem',
-    color: '#34495E',
-    lineHeight: 1.6,
-  },
-  
-  // Consultor Benefits
-  consultorBenefits: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '40px',
-    marginTop: '50px',
-  },
-  consultorBenefit: {
-    textAlign: 'center',
-    padding: '30px',
-    backgroundColor: '#2C5AA0',
-    borderRadius: '15px',
-    color: 'white',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-  },
-  consultorBenefitIcon: {
-    marginBottom: '20px',
-  },
-  consultorBenefitTitle: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    marginBottom: '15px',
-  },
-  consultorBenefitDescription: {
-    fontSize: '1rem',
-    lineHeight: 1.6,
   },
   
   // Plans (NOSSOS PLANOS)
