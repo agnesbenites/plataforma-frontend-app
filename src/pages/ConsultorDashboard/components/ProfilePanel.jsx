@@ -1,7 +1,7 @@
 // src/pages/LojistaProfile.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ExcluirContaLojista from './LojistaDashboard/components/ExcluirContaLojista';
+import ExcluirContaConsultor from './LojistaDashboard/components/ExcluirContaConsultor';
 
 const LojistaProfile = () => {
   const navigate = useNavigate();
