@@ -25,7 +25,7 @@ const MOCK_HISTORY = [
     {
         id: 'ATT-20230519-002',
         clientId: 'CLI-002',
-        clienteNome: 'Cliente Beta (An´nimo)',
+        clienteNome: 'Cliente Beta (Anônimo)',
         data: '19/05/2023',
         horario: '09:00',
         duracao: '30 min',

@@ -10,4 +10,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Variaveis de ambiente Supabase nao configuradas!");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: {
+    schema: 'public'
+  },
+  auth: {
+    persistSession: true
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8'
+    }
+  }
+});
