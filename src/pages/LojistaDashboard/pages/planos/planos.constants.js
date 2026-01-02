@@ -1,16 +1,15 @@
 /* =====================================================
-   STRIPE LINKS
+   STRIPE LINKS - VERSÃO CORRIGIDA
 ===================================================== */
 export const STRIPE_LINKS = {
   BASIC: "https://buy.stripe.com/00w7sL2z6ceE11cd8ZgQE01",
   PRO: "https://buy.stripe.com/dRm8wP7Tq1A011c1qhgQE02",
   ENTERPRISE: "https://buy.stripe.com/3cI3cv2z6fqQaBM8SJgQE03",
 
-  ADICIONAL_BASIC: "https://buy.stripe.com/00w7sL2z6ceE11cd8ZgQE01",
+  ADICIONAL_BASIC: "https://buy.stripe.com/aFa28rehOdiIfW60mdgQE04",
   ADICIONAL_VENDEDOR: "https://buy.stripe.com/6oU4gz6Pm1A0cJUed3gQE05",
   ADICIONAL_FILIAL: "https://buy.stripe.com/7sY28r6PmguUcJUglbgQE06",
-  ADICIONAL_PRODUTOS: "https://buy.stripe.com/aFa3cv6Pm2E47pAglbgQE00",
-  ADICIONAL_MARKETING: "https://buy.stripe.com/aFa28rehOdiIfW60mdgQE04",
+  ADICIONAL_PRODUTOS: "https://buy.stripe.com/eVqeVd2z66Uk5hs9WNgQE09", // ✅ CORRIGIDO!
   ADICIONAL_ERP: "https://buy.stripe.com/3cI9ATc9G7YodNYfh7gQE08",
 };
 
@@ -19,13 +18,13 @@ export const STRIPE_LINKS = {
 ===================================================== */
 export const PLANS_DETAILS = {
   "Plano Basico": {
-    nome: "Plano Basico",
-    valor: 99.9,
+    nome: "Plano Básico",
+    valor: 99.90,
     recursos: [
-      "Limite de 1 Filial (compravel)",
-      "Limite de 10 Vendedores (compravel)",
+      "Limite de 1 Filial (comprável)",
+      "Limite de 10 Vendedores (comprável)",
       "5 Consultores Ativos",
-      "Relatorios Padrao Incluidos",
+      "Relatórios Padrão Incluídos",
       "Suporte por Email (SLA 48h)",
     ],
     upgradeUrl: STRIPE_LINKS.PRO,
@@ -33,13 +32,13 @@ export const PLANS_DETAILS = {
 
   "Plano Pro": {
     nome: "Plano Pro",
-    valor: 199.9,
+    valor: 199.90,
     recursos: [
       "Limite de 5 Filiais",
       "Limite de 50 Vendedores",
       "Consultores Ilimitados",
-      "Relatorios Avancados e BI",
-      "Suporte Prioritario (SLA 4h)",
+      "Relatórios Avançados e BI",
+      "Suporte Prioritário (SLA 4h)",
       "Gerenciamento de Fluxo de Caixa",
     ],
     upgradeUrl: STRIPE_LINKS.ENTERPRISE,
@@ -47,70 +46,63 @@ export const PLANS_DETAILS = {
 
   "Plano Enterprise": {
     nome: "Plano Enterprise",
-    valor: 360.0,
+    valor: 360.00,
     recursos: [
       "Filiais Ilimitadas",
       "Vendedores Ilimitados",
       "Consultores Ilimitados",
-      "Relatorios Avancados e BI",
+      "Relatórios Avançados e BI",
       "Suporte 24/7 Dedicado",
-      "Multiplas Contas Stripe Conectadas",
-      "Integracao de Sistemas Legados",
+      "Múltiplas Contas Stripe Conectadas",
+      "Integração de Sistemas Legados",
     ],
     upgradeUrl: null,
   },
 };
 
 /* =====================================================
-   ADD-ONS DISPONIVEIS
+   ADD-ONS DISPONÍVEIS
 ===================================================== */
 export const ADDONS_DETAILS = [
   {
     nome: "Basic Adicional",
-    preco: 49.9,
+    preco: 49.90,
     link: STRIPE_LINKS.ADICIONAL_BASIC,
-    descricao: "Recursos basicos adicionais para complementar seu plano.",
+    descricao: "Recursos básicos adicionais para complementar seu plano.",
     emBreve: false,
   },
   {
     nome: "Vendedor Adicional",
-    preco: 15.0,
+    preco: 15.00,
     link: STRIPE_LINKS.ADICIONAL_VENDEDOR,
     descricao: "Contrate mais vagas para sua equipe de vendas.",
     emBreve: false,
   },
   {
     nome: "Filial Adicional",
-    preco: 25.0,
+    preco: 25.00,
     link: STRIPE_LINKS.ADICIONAL_FILIAL,
     descricao: "Permite cadastrar uma nova filial.",
     emBreve: false,
   },
   {
     nome: "20 Produtos Adicionais",
-    preco: 10.0,
+    preco: 10.00,
     link: STRIPE_LINKS.ADICIONAL_PRODUTOS,
-    descricao: "Adicione mais 20 produtos ao catalogo.",
+    descricao: "Adicione mais 20 produtos ao catálogo.",
     emBreve: false,
   },
   {
-    nome: "Campanha de Marketing",
-    preco: 25.9,
-    link: STRIPE_LINKS.ADICIONAL_MARKETING,
-    descricao: "Campanhas automatizadas de engajamento.",
-    emBreve: false,
-  },
-  {
-    nome: "Modulo ERP",
-    preco: 59.9,
+    nome: "Módulo ERP",
+    preco: 59.90,
     link: STRIPE_LINKS.ADICIONAL_ERP,
-    descricao: "Gestao completa de pedidos e estoque.",
+    descricao: "Gestão completa de pedidos e estoque.",
     emBreve: false,
   },
 ];
 
 /* =====================================================
-   UPGRADES DISPONIVEIS
+   UPGRADES DISPONÍVEIS
 ===================================================== */
 export const AVAILABLE_UPGRADES = [
   "Plano Pro",
