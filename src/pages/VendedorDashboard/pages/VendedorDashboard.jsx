@@ -1,5 +1,5 @@
 // src/pages/VendedorDashboard/pages/VendedorDashboard.jsx
-// VERSAO ATUALIZADA - Com Gerenciador de Pedidos
+// VERSAO ATUALIZADA - Com Schedule e Status de Vendas
 
 import React from "react";
 import { Routes, Route, Outlet, Link, useNavigate, useLocation } from "react-router-dom";
@@ -25,6 +25,10 @@ import IntegracaoVenda from "../../LojistaDashboard/pages/IntegracaoVenda";
 // Importar o GerenciadorPedidos da pasta shared
 import GerenciadorPedidos from "../../../shared/components/GerenciadorPedidos";
 
+// Importar Schedule (igual ao consultor) e Status de Vendas
+import StatusVendasVendedor from "../components/StatusVendasVendedor";
+import SchedulePanel from "../../ConsultorDashboard/components/SchedulePanel";
+
 // =============================================================
 // === CORES E CONSTANTES ===
 // =============================================================
@@ -37,7 +41,9 @@ const VENDOR_LIGHT_BG = "#eaf2ff";
 const VENDEDOR_MENU_ITEMS = [
     { title: "Dashboard", rota: "/vendedor/dashboard", icon: "&#127968;", destaque: false },
     { title: "Pedidos", rota: "/vendedor/dashboard/pedidos", icon: "&#128230;", destaque: true },
+    { title: "Status Vendas", rota: "/vendedor/dashboard/status", icon: "&#128202;", destaque: false },
     { title: "Atendimento", rota: "/vendedor/dashboard/atendimento", icon: "&#128172;", destaque: false },
+    { title: "Agenda", rota: "/vendedor/dashboard/agenda", icon: "&#128197;", destaque: false },
     { title: "Integrar Venda", rota: "/vendedor/dashboard/integracao", icon: "&#128179;", destaque: false },
     { title: "Meus Clientes", rota: "/vendedor/dashboard/clientes", icon: "&#128101;", destaque: false },
     { title: "Catalogo", rota: "/vendedor/dashboard/produtos", icon: "&#128722;", destaque: false },
@@ -80,11 +86,25 @@ export const VendedorHomePanel = () => {
             icon: "&#128230;"
         },
         {
+            titulo: "Status Vendas",
+            descricao: "Acompanhar pagamentos e entregas",
+            cor: "#17a2b8",
+            rota: "/vendedor/dashboard/status",
+            icon: "&#128202;"
+        },
+        {
             titulo: "Novo Atendimento",
             descricao: "Atender cliente na minha loja",
             cor: VENDOR_PRIMARY,
             rota: "/vendedor/dashboard/atendimento",
             icon: "&#128172;"
+        },
+        {
+            titulo: "Agenda",
+            descricao: "Ver agendamentos de clientes",
+            cor: "#6f42c1",
+            rota: "/vendedor/dashboard/agenda",
+            icon: "&#128197;"
         },
         {
             titulo: "Integrar Venda",
@@ -96,9 +116,9 @@ export const VendedorHomePanel = () => {
         {
             titulo: "Performance",
             descricao: "Acompanhar desempenho e metas",
-            cor: "#17a2b8",
+            cor: "#dc3545",
             rota: "/vendedor/dashboard/relatorio",
-            icon: "&#128202;"
+            icon: "&#128200;"
         }
     ];
 
@@ -127,7 +147,7 @@ export const VendedorHomePanel = () => {
                                 ))}
                             </div>
                             <div style={{ marginTop: "10px", color: "#666", fontSize: "0.9rem" }}>
-                                Atendo apenas esta loja
+                                Atendo presencial ou remoto conforme acordo
                             </div>
                         </div>
                     </div>
@@ -140,7 +160,7 @@ export const VendedorHomePanel = () => {
                             {vendedorInfo.performance}%
                         </div>
                         <div style={vendedorStyles.comissaoPequena}>
-                            Comissao: R$ {vendedorInfo.comissaoAcumulada.toFixed(2).replace('.', ',')}
+                            Salario Fixo + Bonus
                         </div>
                     </div>
                 </div>
@@ -601,7 +621,9 @@ export default function VendedorDashboard() {
                 
                 {/* Sub-rotas */}
                 <Route path="dashboard/pedidos" element={<GerenciadorPedidos tipoUsuario="vendedor" />} />
+                <Route path="dashboard/status" element={<StatusVendasVendedor />} />
                 <Route path="dashboard/atendimento" element={<VendedorAtendimentoPage />} />
+                <Route path="dashboard/agenda" element={<SchedulePanel tipoUsuario="vendedor" />} />
                 <Route path="dashboard/integracao" element={<IntegracaoVenda />} />
                 <Route path="dashboard/clientes" element={<VendedorClientesPage />} />
                 <Route path="dashboard/produtos" element={<VendedorProdutosPage />} />

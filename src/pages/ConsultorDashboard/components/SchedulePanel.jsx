@@ -2,19 +2,22 @@
 // Componente de Agenda - Funciona para CONSULTOR e VENDEDOR
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/supabaseClient';
+import { supabase } from '../../../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
+  const navigate = useNavigate();
   const [userId, setUserId] = useState(null);
   const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState('todos'); // todos, hoje, semana, mes
   const [mostrarModal, setMostrarModal] = useState(false);
   const [novoAgendamento, setNovoAgendamento] = useState({
     cliente_nome: '',
     cliente_telefone: '',
     data: '',
     hora: '',
-    tipo: 'presencial', // presencial, remoto, telefone
+    tipo: 'presencial',
     observacoes: ''
   });
 
@@ -36,7 +39,7 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
       const interval = setInterval(carregarAgendamentos, 60000);
       return () => clearInterval(interval);
     }
-  }, [userId]);
+  }, [userId, filtro]);
 
   const inicializar = async () => {
     try {
@@ -63,23 +66,60 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
     try {
       setLoading(true);
 
+      if (!userId) return;
+
       const campo = tipoUsuario === 'vendedor' ? 'vendedor_id' : 'consultor_id';
       
-      const { data, error } = await supabase
+      // Calcular data de filtro
+      let dataFiltro = new Date();
+      if (filtro === 'hoje') {
+        dataFiltro.setHours(0, 0, 0, 0);
+      } else if (filtro === 'semana') {
+        dataFiltro.setDate(dataFiltro.getDate() - 7);
+      } else if (filtro === 'mes') {
+        dataFiltro.setMonth(dataFiltro.getMonth() - 1);
+      } else {
+        // "todos" - últimos 3 meses
+        dataFiltro.setMonth(dataFiltro.getMonth() - 3);
+      }
+
+      let query = supabase
         .from('agendamentos')
-        .select('*')
+        .select(`
+          id,
+          cliente_id,
+          cliente_nome,
+          cliente_telefone,
+          data_agendamento,
+          duracao_minutos,
+          status,
+          tipo_atendimento,
+          observacoes,
+          produtos_interesse,
+          created_at,
+          clientes (
+            nome,
+            nome_visivel
+          ),
+          lojas (
+            nome_fantasia
+          )
+        `)
         .eq(campo, userId)
-        .gte('data_hora', new Date().toISOString())
-        .order('data_hora', { ascending: true })
-        .limit(20);
+        .gte('data_agendamento', dataFiltro.toISOString())
+        .order('data_agendamento', { ascending: true })
+        .limit(50);
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
+      console.log('[Schedule] Agendamentos carregados:', data?.length || 0);
       setAgendamentos(data || []);
-      console.log('[Schedule] Agendamentos carregados:', data?.length);
 
     } catch (error) {
       console.error('[Schedule] Erro ao carregar:', error);
+      setAgendamentos([]);
     } finally {
       setLoading(false);
     }
@@ -89,12 +129,12 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
     e.preventDefault();
 
     if (!novoAgendamento.cliente_nome || !novoAgendamento.data || !novoAgendamento.hora) {
-      alert('Preencha os campos obrigatórios!');
+      alert('❌ Preencha os campos obrigatórios!');
       return;
     }
 
     try {
-      const dataHora = `${novoAgendamento.data}T${novoAgendamento.hora}:00`;
+      const dataAgendamento = `${novoAgendamento.data}T${novoAgendamento.hora}:00`;
       
       const campo = tipoUsuario === 'vendedor' ? 'vendedor_id' : 'consultor_id';
 
@@ -104,11 +144,11 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
           [campo]: userId,
           cliente_nome: novoAgendamento.cliente_nome,
           cliente_telefone: novoAgendamento.cliente_telefone,
-          data_hora: dataHora,
+          data_agendamento: dataAgendamento,
+          duracao_minutos: 30,
           tipo_atendimento: novoAgendamento.tipo,
           observacoes: novoAgendamento.observacoes,
-          status: 'agendado',
-          created_at: new Date().toISOString()
+          status: 'confirmado', // Criado pelo consultor = já confirmado
         });
 
       if (error) throw error;
@@ -150,39 +190,65 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
     }
   };
 
-  const cancelarAgendamento = async (id) => {
-    if (!window.confirm('Deseja cancelar este agendamento?')) return;
+  const recusarAgendamento = async (id) => {
+    const motivo = prompt('Por que deseja recusar este agendamento?');
+    if (!motivo) return;
 
     try {
       const { error } = await supabase
         .from('agendamentos')
-        .update({ status: 'cancelado' })
+        .update({ 
+          status: 'cancelado',
+          motivo_cancelamento: motivo
+        })
         .eq('id', id);
 
       if (error) throw error;
 
-      alert('✅ Agendamento cancelado!');
+      alert('✅ Agendamento recusado!');
       await carregarAgendamentos();
 
     } catch (error) {
-      console.error('[Schedule] Erro ao cancelar:', error);
-      alert('❌ Erro ao cancelar agendamento');
+      console.error('[Schedule] Erro ao recusar:', error);
+      alert('❌ Erro ao recusar agendamento');
     }
   };
 
-  const formatarDataHora = (dataHora) => {
-    return new Date(dataHora).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const iniciarAtendimento = (agendamento) => {
+    // Redirecionar para o ChatPanel com os dados do agendamento
+    navigate('/consultor/dashboard/chat', {
+      state: {
+        clienteId: agendamento.cliente_id,
+        clienteNome: agendamento.clientes?.nome || agendamento.cliente_nome,
+        clienteNomeVisivel: agendamento.clientes?.nome_visivel || false,
+        agendamentoId: agendamento.id,
+        produtosInteresse: agendamento.produtos_interesse
+      }
     });
+  };
+
+  const formatarDataHora = (dataAgendamento) => {
+    const data = new Date(dataAgendamento);
+    const hoje = new Date();
+    const amanha = new Date(hoje);
+    amanha.setDate(amanha.getDate() + 1);
+
+    const dataStr = data.toLocaleDateString('pt-BR');
+    const horaStr = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // Verificar se é hoje, amanhã ou outra data
+    if (data.toDateString() === hoje.toDateString()) {
+      return `🔴 Hoje às ${horaStr}`;
+    } else if (data.toDateString() === amanha.toDateString()) {
+      return `🟡 Amanhã às ${horaStr}`;
+    } else {
+      return `📅 ${dataStr} às ${horaStr}`;
+    }
   };
 
   const getStatusInfo = (status) => {
     const statusMap = {
-      'agendado': { emoji: '📅', texto: 'Agendado', cor: '#ffc107' },
+      'pendente': { emoji: '🟡', texto: 'Pendente Aprovação', cor: '#ffc107' },
       'confirmado': { emoji: '✅', texto: 'Confirmado', cor: '#28a745' },
       'cancelado': { emoji: '❌', texto: 'Cancelado', cor: '#dc3545' },
       'concluido': { emoji: '🎉', texto: 'Concluído', cor: '#6c757d' },
@@ -199,20 +265,53 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
     return tipoMap[tipo] || { emoji: '❓', texto: tipo };
   };
 
+  const contarPorStatus = () => {
+    return {
+      total: agendamentos.length,
+      pendentes: agendamentos.filter(a => a.status === 'pendente').length,
+      confirmados: agendamentos.filter(a => a.status === 'confirmado').length,
+      hoje: agendamentos.filter(a => {
+        const data = new Date(a.data_agendamento);
+        const hoje = new Date();
+        return data.toDateString() === hoje.toDateString();
+      }).length
+    };
+  };
+
+  const stats = contarPorStatus();
+
   if (loading) {
     return (
       <div style={styles.loading}>
-        ⏳ Carregando agenda...
+        <div style={styles.loadingSpinner}>🔄</div>
+        <p>Carregando agenda...</p>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
+      {/* Header com Estatísticas */}
       <div style={styles.header}>
-        <h2 style={{ ...styles.title, color: cor.primary }}>
-          📅 Minha Agenda
-        </h2>
+        <div>
+          <h2 style={{ ...styles.title, color: cor.primary }}>
+            📅 Calendário de Atendimentos
+          </h2>
+          <div style={styles.statsRow}>
+            <div style={styles.statBadge}>
+              📊 Total: <strong>{stats.total}</strong>
+            </div>
+            <div style={{ ...styles.statBadge, backgroundColor: '#fff3cd' }}>
+              🟡 Pendentes: <strong>{stats.pendentes}</strong>
+            </div>
+            <div style={{ ...styles.statBadge, backgroundColor: '#d4edda' }}>
+              ✅ Confirmados: <strong>{stats.confirmados}</strong>
+            </div>
+            <div style={{ ...styles.statBadge, backgroundColor: '#f8d7da' }}>
+              🔴 Hoje: <strong>{stats.hoje}</strong>
+            </div>
+          </div>
+        </div>
         <button
           onClick={() => setMostrarModal(true)}
           style={{ ...styles.btnNovo, backgroundColor: cor.primary }}
@@ -221,12 +320,60 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
         </button>
       </div>
 
+      {/* Filtros */}
+      <div style={styles.filtrosContainer}>
+        <button
+          onClick={() => setFiltro('todos')}
+          style={{
+            ...styles.filtroBtn,
+            backgroundColor: filtro === 'todos' ? cor.primary : '#e9ecef',
+            color: filtro === 'todos' ? 'white' : '#333'
+          }}
+        >
+          Todos
+        </button>
+        <button
+          onClick={() => setFiltro('hoje')}
+          style={{
+            ...styles.filtroBtn,
+            backgroundColor: filtro === 'hoje' ? cor.primary : '#e9ecef',
+            color: filtro === 'hoje' ? 'white' : '#333'
+          }}
+        >
+          Hoje
+        </button>
+        <button
+          onClick={() => setFiltro('semana')}
+          style={{
+            ...styles.filtroBtn,
+            backgroundColor: filtro === 'semana' ? cor.primary : '#e9ecef',
+            color: filtro === 'semana' ? 'white' : '#333'
+          }}
+        >
+          Esta Semana
+        </button>
+        <button
+          onClick={() => setFiltro('mes')}
+          style={{
+            ...styles.filtroBtn,
+            backgroundColor: filtro === 'mes' ? cor.primary : '#e9ecef',
+            color: filtro === 'mes' ? 'white' : '#333'
+          }}
+        >
+          Este Mês
+        </button>
+      </div>
+
       {/* Lista de Agendamentos */}
       {agendamentos.length === 0 ? (
         <div style={styles.empty}>
-          <p>😴 Nenhum agendamento próximo</p>
-          <p style={{ fontSize: '0.9rem', color: '#666' }}>
-            Clique em "Novo Agendamento" para criar um
+          <div style={styles.emptyIcon}>📅</div>
+          <p style={styles.emptyTitle}>Nenhum agendamento encontrado</p>
+          <p style={styles.emptySubtitle}>
+            {filtro === 'todos' 
+              ? 'Clique em "Novo Agendamento" para criar um ou aguarde agendamentos dos clientes via app'
+              : `Nenhum agendamento para o filtro "${filtro}"`
+            }
           </p>
         </div>
       ) : (
@@ -234,17 +381,25 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
           {agendamentos.map(agendamento => {
             const statusInfo = getStatusInfo(agendamento.status);
             const tipoInfo = getTipoInfo(agendamento.tipo_atendimento);
+            const nomeCliente = agendamento.clientes?.nome_visivel 
+              ? agendamento.clientes.nome 
+              : agendamento.cliente_nome || `Cliente #${agendamento.cliente_id?.substring(0, 6)}`;
 
             return (
               <div key={agendamento.id} style={styles.agendamentoCard}>
                 <div style={styles.cardHeader}>
                   <div>
                     <h3 style={styles.clienteNome}>
-                      👤 {agendamento.cliente_nome}
+                      👤 {nomeCliente}
                     </h3>
                     {agendamento.cliente_telefone && (
                       <p style={styles.clienteTelefone}>
                         📞 {agendamento.cliente_telefone}
+                      </p>
+                    )}
+                    {agendamento.lojas && (
+                      <p style={styles.lojaInfo}>
+                        🏪 {agendamento.lojas.nome_fantasia}
                       </p>
                     )}
                   </div>
@@ -260,9 +415,16 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
 
                 <div style={styles.cardInfo}>
                   <div style={styles.infoRow}>
-                    <span style={styles.infoLabel}>📅 Data/Hora:</span>
+                    <span style={styles.infoLabel}>📅 Quando:</span>
                     <span style={styles.infoValue}>
-                      {formatarDataHora(agendamento.data_hora)}
+                      {formatarDataHora(agendamento.data_agendamento)}
+                    </span>
+                  </div>
+
+                  <div style={styles.infoRow}>
+                    <span style={styles.infoLabel}>⏱️ Duração:</span>
+                    <span style={styles.infoValue}>
+                      {agendamento.duracao_minutos || 30} minutos
                     </span>
                   </div>
 
@@ -273,6 +435,17 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
                     </span>
                   </div>
 
+                  {agendamento.produtos_interesse && (
+                    <div style={styles.produtosBox}>
+                      <strong>🛒 Produtos de Interesse:</strong>
+                      <ul style={styles.produtosList}>
+                        {agendamento.produtos_interesse.map((prod, idx) => (
+                          <li key={idx}>{prod}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {agendamento.observacoes && (
                     <div style={styles.observacoes}>
                       <strong>📝 Observações:</strong>
@@ -282,36 +455,47 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
                 </div>
 
                 {/* Ações */}
-                {agendamento.status === 'agendado' && (
-                  <div style={styles.cardActions}>
+                <div style={styles.cardActions}>
+                  {agendamento.status === 'pendente' && (
+                    <>
+                      <button
+                        onClick={() => confirmarAgendamento(agendamento.id)}
+                        style={styles.btnConfirmar}
+                      >
+                        ✅ Confirmar
+                      </button>
+                      <button
+                        onClick={() => recusarAgendamento(agendamento.id)}
+                        style={styles.btnRecusar}
+                      >
+                        ❌ Recusar
+                      </button>
+                    </>
+                  )}
+                  
+                  {agendamento.status === 'confirmado' && (
                     <button
-                      onClick={() => confirmarAgendamento(agendamento.id)}
-                      style={styles.btnConfirmar}
+                      onClick={() => iniciarAtendimento(agendamento)}
+                      style={styles.btnIniciar}
                     >
-                      ✅ Confirmar
+                      🚀 Iniciar Atendimento
                     </button>
-                    <button
-                      onClick={() => cancelarAgendamento(agendamento.id)}
-                      style={styles.btnCancelar}
-                    >
-                      ❌ Cancelar
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* MODAL - Novo Agendamento */}
+      {/* Modal de Novo Agendamento */}
       {mostrarModal && (
         <div style={styles.modalOverlay} onClick={() => setMostrarModal(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ ...styles.modalTitle, color: cor.primary }}>
-              ➕ Novo Agendamento
-            </h2>
-
+            <h3 style={{ ...styles.modalTitle, color: cor.primary }}>
+              ➕ Novo Agendamento Manual
+            </h3>
+            
             <form onSubmit={criarAgendamento} style={styles.form}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>👤 Nome do Cliente *</label>
@@ -324,7 +508,7 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
                   })}
                   required
                   style={styles.input}
-                  placeholder="Nome completo"
+                  placeholder="Digite o nome do cliente"
                 />
               </div>
 
@@ -338,7 +522,7 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
                     cliente_telefone: e.target.value
                   })}
                   style={styles.input}
-                  placeholder="(11) 99999-9999"
+                  placeholder="(11) 98765-4321"
                 />
               </div>
 
@@ -353,8 +537,8 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
                       data: e.target.value
                     })}
                     required
-                    min={new Date().toISOString().split('T')[0]}
                     style={styles.input}
+                    min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
@@ -429,27 +613,45 @@ const SchedulePanel = ({ tipoUsuario = 'consultor' }) => {
 const styles = {
   container: {
     padding: '20px',
-    maxWidth: '1200px',
+    maxWidth: '1400px',
     margin: '0 auto',
   },
   loading: {
-    textAlign: 'center',
-    padding: '60px',
-    color: '#666',
-    fontSize: '1.2rem',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '80px 20px',
+    gap: '15px',
+  },
+  loadingSpinner: {
+    fontSize: '3rem',
+    animation: 'spin 1s linear infinite',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '30px',
+    alignItems: 'flex-start',
+    marginBottom: '25px',
     flexWrap: 'wrap',
     gap: '15px',
   },
   title: {
-    margin: 0,
+    margin: '0 0 15px 0',
     fontSize: '1.8rem',
     fontWeight: '600',
+  },
+  statsRow: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
+  },
+  statBadge: {
+    backgroundColor: '#e9ecef',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    fontSize: '0.9rem',
+    color: '#333',
   },
   btnNovo: {
     color: 'white',
@@ -459,17 +661,47 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '600',
     fontSize: '1rem',
+    whiteSpace: 'nowrap',
+  },
+  filtrosContainer: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '25px',
+    flexWrap: 'wrap',
+  },
+  filtroBtn: {
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.95rem',
+    transition: 'all 0.2s',
   },
   empty: {
     textAlign: 'center',
     padding: '80px 20px',
     backgroundColor: '#f8f9fa',
     borderRadius: '12px',
+  },
+  emptyIcon: {
+    fontSize: '4rem',
+    marginBottom: '20px',
+  },
+  emptyTitle: {
+    fontSize: '1.3rem',
+    fontWeight: '600',
+    color: '#333',
+    margin: '0 0 10px 0',
+  },
+  emptySubtitle: {
+    fontSize: '1rem',
     color: '#666',
+    margin: 0,
   },
   agendamentosGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
     gap: '20px',
   },
   agendamentoCard: {
@@ -478,6 +710,7 @@ const styles = {
     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
     padding: '20px',
     border: '1px solid #e9ecef',
+    transition: 'transform 0.2s, box-shadow 0.2s',
   },
   cardHeader: {
     display: 'flex',
@@ -491,11 +724,18 @@ const styles = {
     margin: '0 0 5px 0',
     fontSize: '1.1rem',
     color: '#333',
+    fontWeight: '600',
   },
   clienteTelefone: {
-    margin: 0,
+    margin: '0 0 3px 0',
     fontSize: '0.9rem',
     color: '#666',
+  },
+  lojaInfo: {
+    margin: 0,
+    fontSize: '0.85rem',
+    color: '#666',
+    fontStyle: 'italic',
   },
   statusBadge: {
     padding: '6px 12px',
@@ -522,6 +762,19 @@ const styles = {
   infoValue: {
     fontSize: '0.95rem',
     color: '#333',
+    fontWeight: '500',
+  },
+  produtosBox: {
+    marginTop: '15px',
+    padding: '12px',
+    backgroundColor: '#e7f3ff',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    border: '1px solid #b3d9ff',
+  },
+  produtosList: {
+    margin: '8px 0 0 0',
+    paddingLeft: '20px',
   },
   observacoes: {
     marginTop: '15px',
@@ -540,20 +793,33 @@ const styles = {
     backgroundColor: '#28a745',
     color: 'white',
     border: 'none',
-    padding: '10px',
+    padding: '12px',
     borderRadius: '6px',
     cursor: 'pointer',
     fontWeight: '600',
+    fontSize: '0.95rem',
   },
-  btnCancelar: {
+  btnRecusar: {
     flex: 1,
     backgroundColor: '#dc3545',
     color: 'white',
     border: 'none',
-    padding: '10px',
+    padding: '12px',
     borderRadius: '6px',
     cursor: 'pointer',
     fontWeight: '600',
+    fontSize: '0.95rem',
+  },
+  btnIniciar: {
+    flex: 1,
+    backgroundColor: '#2c5aa0',
+    color: 'white',
+    border: 'none',
+    padding: '12px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.95rem',
   },
   modalOverlay: {
     position: 'fixed',
@@ -653,5 +919,22 @@ const styles = {
     fontSize: '1rem',
   },
 };
+
+// Adicionar animação de loading
+if (typeof document !== 'undefined') {
+  const styleSheet = document.styleSheets[0];
+  if (styleSheet) {
+    try {
+      styleSheet.insertRule(`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `, styleSheet.cssRules.length);
+    } catch (e) {
+      // Ignora se já existir
+    }
+  }
+}
 
 export default SchedulePanel;

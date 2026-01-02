@@ -1,8 +1,9 @@
 // src/pages/ConsultorDashboard/pages/ConsultorDashboard.jsx
-// VERSÃO CORRIGIDA - Importa os componentes REAIS da pasta components/
 
 import React from "react";
 import { Routes, Route, Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/supabaseClient"; // ✅ ADICIONAR IMPORT
 
 // =============================================================
 // === IMPORTAÇÕES DOS COMPONENTES REAIS ===
@@ -18,6 +19,8 @@ import ReviewsPanel from "../components/ReviewsPanel";
 import SalesTable from "../components/SalesTable";
 import StoresPanel from "../components/StoresPanel";
 import TrainingPanel from "../components/TrainingPanel";
+import StatusVendaConsultor from "../components/StatusVendaConsultor";
+import MeusClientes from "./MeusClientes"; // ✅ NOVO
 
 // --- DADOS E CONSTANTES GLOBAIS ---
 const MOCK_CONSULTOR_INFO = {
@@ -29,14 +32,16 @@ const MOCK_CONSULTOR_INFO = {
     ratingMedio: 4.8,
 };
 
-// Itens de menu com ícones de emoji
+// ✅ MENU COM EMOJIS COMPLETO
 const CONSULTOR_MENU_ITEMS = [
     { title: "🏠 Home", icon: "🏠", rota: "/consultor/dashboard" },
-    { title: "👥 Fila de Atendimento", icon: "👥", rota: "/consultor/dashboard/fila" },
+    { title: "📋 Fila de Atendimento", icon: "📋", rota: "/consultor/dashboard/fila" },
     { title: "💬 Atendimento Ativo", icon: "💬", rota: "/consultor/dashboard/chat" },
     { title: "📜 Histórico", icon: "📜", rota: "/consultor/dashboard/historico" },
+    { title: "📊 Status da Venda", icon: "📊", rota: "/consultor/dashboard/status-venda" },
     { title: "💰 Comissões", icon: "💰", rota: "/consultor/dashboard/analytics" },
     { title: "🏪 Minhas Lojas", icon: "🏪", rota: "/consultor/dashboard/lojas" },
+    { title: "👥 Meus Clientes", icon: "👥", rota: "/consultor/dashboard/clientes" }, // ✅ NOVO
     { title: "⭐ Avaliações", icon: "⭐", rota: "/consultor/dashboard/reviews" },
     { title: "🎓 Treinamentos", icon: "🎓", rota: "/consultor/dashboard/treinamentos" },
     { title: "📈 Minhas Vendas", icon: "📈", rota: "/consultor/dashboard/vendas" },
@@ -46,9 +51,9 @@ const CONSULTOR_MENU_ITEMS = [
 
 // --- COMPONENTE DE LAYOUT (SIDEBAR) ---
 const DashboardLayout = () => {
+    const { user, signOut } = useAuth();
     const location = useLocation();
     const currentPath = location.pathname;
-    const userName = localStorage.getItem("userName") || MOCK_CONSULTOR_INFO.nome;
 
     const getMenuItemStyle = (rota) => {
         const isActive = currentPath === rota || (rota !== "/consultor/dashboard" && currentPath.startsWith(rota));
@@ -62,11 +67,11 @@ const DashboardLayout = () => {
     return (
         <div className="flex min-h-screen bg-gray-50">
             {/* Sidebar */}
-            <div className="w-64 bg-white shadow-xl flex-shrink-0">
+            <div className="w-64 bg-white shadow-xl flex-shrink-0 flex flex-col">
                 <h2 className="text-2xl font-extrabold text-blue-800 p-6 text-center border-b border-gray-100">
                     Autônomo
                 </h2>
-                <nav className="mt-4">
+                <nav className="mt-4 flex-1">
                     {CONSULTOR_MENU_ITEMS.map((item) => (
                         <Link
                             key={item.rota}
@@ -78,6 +83,12 @@ const DashboardLayout = () => {
                         </Link>
                     ))}
                 </nav>
+                <button 
+                    onClick={signOut}
+                    className="m-6 p-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors"
+                >
+                    🚪 Sair
+                </button>
             </div>
 
             {/* Conteúdo Principal */}
@@ -85,7 +96,7 @@ const DashboardLayout = () => {
                 <header className="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
                     <div>
                         <h1 className="text-xl font-semibold text-blue-800">Painel do Consultor</h1>
-                        <p className="text-sm text-gray-500">Bem-vindo(a), {userName}</p>
+                        <p className="text-sm text-gray-500">Bem-vindo(a), {user?.nome || 'Agnes Consultora'}</p>
                     </div>
                     <Link
                         to="/consultor/dashboard/profile"
@@ -106,23 +117,126 @@ const DashboardLayout = () => {
 
 // --- CONSULTOR HOME PANEL ---
 export const ConsultorHomePanel = () => {
+    const { user, loading } = useAuth();
     const navigate = useNavigate();
-    const consultorInfo = MOCK_CONSULTOR_INFO;
+    const [consultorInfo, setConsultorInfo] = React.useState(MOCK_CONSULTOR_INFO);
+    const [loadingStats, setLoadingStats] = React.useState(true);
+
+    // ✅ BUSCAR DADOS REAIS DO CONSULTOR
+    React.useEffect(() => {
+        const buscarDadosReais = async () => {
+            if (!user?.id) return;
+            
+            setLoadingStats(true);
+            try {
+                // 1. Buscar lojas onde o consultor tem pedidos
+                const { data: pedidos } = await supabase
+                    .from('pedidos')
+                    .select('lojista_id')
+                    .eq('user_id', user.id)
+                    .not('status_separacao', 'eq', 'Cancelado');
+
+                const lojasUnicas = new Set(pedidos?.map(p => p.lojista_id) || []);
+                const totalLojas = lojasUnicas.size;
+
+                // 2. Buscar comissão do mês
+                const mesAtual = new Date();
+                const inicioMes = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+                
+                const { data: pedidosFinalizados } = await supabase
+                    .from('pedidos')
+                    .select('valor_total, valor_comissao, percentual_comissao')
+                    .eq('user_id', user.id)
+                    .eq('status_separacao', 'Retirado pelo Cliente')
+                    .gte('data_pedido', inicioMes.toISOString());
+
+                const comissaoTotal = pedidosFinalizados?.reduce((sum, p) => {
+                    const comissao = p.valor_comissao || ((p.valor_total || 0) * (p.percentual_comissao || 10) / 100);
+                    return sum + comissao;
+                }, 0) || 0;
+
+                const atendimentosMes = pedidosFinalizados?.length || 0;
+
+                // 3. Buscar avaliações
+                const { data: avaliacoes } = await supabase
+                    .from('avaliacoes')
+                    .select('estrelas')
+                    .eq('consultor_id', user.id);
+
+                const ratingMedio = avaliacoes?.length > 0 
+                    ? (avaliacoes.reduce((sum, a) => sum + (a.estrelas || 0), 0) / avaliacoes.length).toFixed(1)
+                    : 0;
+
+                setConsultorInfo({
+                    ...MOCK_CONSULTOR_INFO,
+                    lojasAtendidas: totalLojas,
+                    comissaoAcumulada: comissaoTotal,
+                    atendimentosMes,
+                    ratingMedio: parseFloat(ratingMedio)
+                });
+
+            } catch (error) {
+                console.error('[Home] Erro ao buscar dados:', error);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+
+        buscarDadosReais();
+    }, [user]);
+
+    if (loading || loadingStats) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="animate-spin text-blue-800 text-4xl mb-4">🔄</div>
+                    <p className="text-gray-600 font-medium">Carregando dados do consultor...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="max-w-2xl mx-auto mt-10">
+                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-8 text-center">
+                    <div className="text-red-600 text-5xl mb-4">⚠️</div>
+                    <h2 className="text-2xl font-bold text-red-800 mb-3">Usuário não carregado</h2>
+                    <p className="text-gray-700 mb-4">O sistema não conseguiu identificar suas credenciais.</p>
+                    
+                    <div className="bg-white p-4 rounded-lg mb-4 text-left">
+                        <p className="text-sm font-mono text-gray-600">
+                            <strong>Debug Info:</strong><br/>
+                            Loading: {loading ? 'true' : 'false'}<br/>
+                            User: {user ? 'exists' : 'null'}<br/>
+                            Token exists: {localStorage.getItem('sb-vluxffbornrlxcepqmzr-auth-token') ? 'yes' : 'no'}
+                        </p>
+                    </div>
+
+                    <button 
+                        onClick={() => window.location.href = '/entrar'}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700"
+                    >
+                        Fazer Login Novamente
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const atalhos = [
-        { titulo: "▶️ Próximo da Fila", descricao: "Iniciar um novo atendimento da fila prioritária", cor: "bg-blue-500 hover:bg-blue-600", rota: "/consultor/dashboard/fila" },
-        { titulo: "🏪 Lojas Atendidas", descricao: "Gerenciar minhas lojas e configurar categorias", cor: "bg-green-500 hover:bg-green-600", rota: "/consultor/dashboard/lojas" },
-        { titulo: "💸 Sacar Comissão", descricao: "Ver detalhes de comissão e solicitar saque", cor: "bg-yellow-500 hover:bg-yellow-600", rota: "/consultor/dashboard/analytics" },
-        { titulo: "💬 Chat Ativo", descricao: "Acessar atendimentos em andamento", cor: "bg-teal-500 hover:bg-teal-600", rota: "/consultor/dashboard/chat" }
+        { titulo: "▶️ Próximo da Fila", descricao: "Iniciar um novo atendimento", cor: "bg-blue-500", rota: "/consultor/dashboard/fila" },
+        { titulo: "🔄 Status Venda", descricao: "Acompanhar carrinho do cliente", cor: "bg-purple-500", rota: "/consultor/dashboard/status-venda" },
+        { titulo: "💸 Sacar Comissão", descricao: "Ver saldo e solicitar saque", cor: "bg-yellow-500", rota: "/consultor/dashboard/analytics" },
+        { titulo: "💬 Chat Ativo", descricao: "Falar com clientes", cor: "bg-teal-500", rota: "/consultor/dashboard/chat" }
     ];
 
     return (
         <div className="max-w-7xl mx-auto">
-            {/* Cabeçalho Pessoal e Comissão */}
             <div className="bg-white p-6 rounded-xl shadow-lg mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center">
                 <div className="mb-4 lg:mb-0">
                     <h1 className="text-3xl font-bold text-blue-800 mb-1">
-                        👋 Olá, {consultorInfo.nome}!
+                        👋 Olá, {user?.nome || user?.email || 'Agnes Consultora'}!
                     </h1>
                     <p className="text-gray-600 mb-4">
                         Segmentos de Atuação: {consultorInfo.segmentos.join(', ')}
@@ -131,68 +245,60 @@ export const ConsultorHomePanel = () => {
                         <h3 className="text-lg font-semibold text-gray-700 mr-4">
                             <span className="inline mr-2 text-teal-600">✅</span> Atendendo {consultorInfo.lojasAtendidas} Lojas
                         </h3>
-                        <button onClick={() => navigate("/consultor/dashboard/lojas")} className="bg-teal-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors hover:bg-teal-700">
+                        <button 
+                            onClick={() => navigate("/consultor/dashboard/lojas")}
+                            className="text-sm bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                        >
                             Ver Detalhes das Lojas
                         </button>
                     </div>
                 </div>
 
-                {/* Comissionamento */}
                 <div className="text-center bg-green-50 p-4 rounded-xl border-2 border-green-300 min-w-[200px] shadow-inner">
-                    <div className="text-xs text-green-700 font-medium mb-1">Comissão Acumulada</div>
+                    <div className="text-xs text-green-700 font-medium mb-1">💰 Comissão (Mês)</div>
                     <div className="text-3xl font-extrabold text-green-600 mb-3">
                         R$ {consultorInfo.comissaoAcumulada.toFixed(2).replace('.', ',')}
                     </div>
-                    <button onClick={() => navigate("/consultor/dashboard/analytics")} className="w-full bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors hover:bg-green-700 shadow-md">
-                        <span className="inline mr-2">💸</span> Sacar Agora
+                    <button onClick={() => navigate("/consultor/dashboard/analytics")} className="w-full bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm hover:bg-green-700">
+                        Sacar Agora
                     </button>
                 </div>
             </div>
 
-            {/* Atalhos Rápidos */}
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">⚡ Ações de Atendimento</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {atalhos.map((atalho, index) => (
                     <div
                         key={index}
                         onClick={() => navigate(atalho.rota)}
-                        className={`bg-white p-6 rounded-xl shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.02] border-l-4 ${atalho.cor === 'bg-blue-500 hover:bg-blue-600' ? 'border-blue-500' : atalho.cor === 'bg-green-500 hover:bg-green-600' ? 'border-green-500' : atalho.cor === 'bg-yellow-500 hover:bg-yellow-600' ? 'border-yellow-500' : 'border-teal-500'}`}
+                        className={`bg-white p-6 rounded-xl shadow-md cursor-pointer transition-all hover:scale-[1.02] border-l-4 ${atalho.cor.replace('bg-', 'border-')}`}
                     >
-                        <h3 className={`text-xl font-bold ${atalho.cor.includes('blue') ? 'text-blue-700' : atalho.cor.includes('green') ? 'text-green-700' : atalho.cor.includes('yellow') ? 'text-yellow-700' : 'text-teal-700'}`}>
-                            {atalho.titulo}
-                        </h3>
+                        <h3 className="text-xl font-bold text-gray-800">{atalho.titulo}</h3>
                         <p className="text-gray-500 mt-2 text-sm">{atalho.descricao}</p>
                     </div>
                 ))}
             </div>
 
-            {/* Métricas Chave */}
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">📊 Performance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <MetricCard title="Atendimentos (Mês)" value={consultorInfo.atendimentosMes} icon="👥" color="blue" />
-                <MetricCard title="Rating Médio" value={`${consultorInfo.ratingMedio} / 5.0`} icon="⭐" color="yellow" />
-                <MetricCard title="Lojas Ativas" value={consultorInfo.lojasAtendidas} icon="🏪" color="teal" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <div className="bg-white p-6 rounded-xl shadow-md mb-6">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Performance</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-600">ATENDIMENTOS (MÊS)</p>
+                                <p className="text-3xl font-bold text-blue-600">{consultorInfo.atendimentosMes}</p>
+                            </div>
+                            <div className="bg-yellow-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-600">AVALIAÇÃO MÉDIA</p>
+                                <p className="text-3xl font-bold text-yellow-600">{consultorInfo.ratingMedio} ⭐</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-md">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">📱 Status do App</h3>
+                    <StatusVendaConsultor consultorId={user?.id} />
+                </div>
             </div>
-        </div>
-    );
-};
-
-// Componente auxiliar para Métricas
-const MetricCard = ({ title, value, icon, color }) => {
-    const colorClasses = {
-        blue: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-500' },
-        yellow: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-500' },
-        teal: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-500' },
-    };
-    const classes = colorClasses[color] || colorClasses.blue;
-
-    return (
-        <div className={`p-6 rounded-xl shadow-md flex items-center justify-between ${classes.bg} border-l-4 ${classes.border}`}>
-            <div>
-                <p className={`text-sm font-semibold uppercase ${classes.text}`}>{title}</p>
-                <p className="text-4xl font-extrabold text-gray-800 mt-1">{value}</p>
-            </div>
-            <div className={`text-4xl p-3 rounded-full ${classes.text} opacity-50`}>{icon}</div>
         </div>
     );
 };
@@ -205,17 +311,22 @@ export default function ConsultorDashboard() {
         <Routes>
             <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<ConsultorHomePanel />} />
+                <Route path="dashboard" element={<ConsultorHomePanel />} />
+                
+                {/* Sub-rotas */}
                 <Route path="fila" element={<QueuePanel />} />
                 <Route path="chat" element={<ChatPanel />} />
+                <Route path="resumo-venda/:vendaId" element={<AttendanceSummaryPanel />} />
+                <Route path="analytics" element={<AnalyticsPanel />} />
                 <Route path="lojas" element={<StoresPanel />} />
+                <Route path="clientes" element={<MeusClientes />} /> {/* ✅ ROTA NOVA */}
                 <Route path="profile" element={<ProfilePanel />} />
                 <Route path="historico" element={<HistoryPanel />} />
                 <Route path="reviews" element={<ReviewsPanel />} />
                 <Route path="treinamentos" element={<TrainingPanel />} />
                 <Route path="vendas" element={<SalesTable />} />
                 <Route path="report" element={<ReportPanel />} />
-                <Route path="resumo-venda/:vendaId" element={<AttendanceSummaryPanel />} />
-                <Route path="analytics" element={<AnalyticsPanel />} />
+                <Route path="status-venda" element={<StatusVendaConsultor />} />
             </Route>
         </Routes>
     );
