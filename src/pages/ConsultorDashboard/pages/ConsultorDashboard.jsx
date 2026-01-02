@@ -204,14 +204,7 @@ export default function ConsultorDashboard() {
     return (
         <Routes>
             <Route path="/" element={<DashboardLayout />}>
-                {/* Rota index */}
                 <Route index element={<ConsultorHomePanel />} />
-                
-                {/* Rota /consultor/dashboard */}
-                <Route path element={<ConsultorHomePanel />} />
-                
-                {/* Sub-rotas - USANDO OS COMPONENTES IMPORTADOS */}
-                  {/* Remover "dashboard/" de TODAS as rotas abaixo */}
                 <Route path="fila" element={<QueuePanel />} />
                 <Route path="chat" element={<ChatPanel />} />
                 <Route path="lojas" element={<StoresPanel />} />
@@ -223,7 +216,6 @@ export default function ConsultorDashboard() {
                 <Route path="report" element={<ReportPanel />} />
                 <Route path="resumo-venda/:vendaId" element={<AttendanceSummaryPanel />} />
                 <Route path="analytics" element={<AnalyticsPanel />} />
-</Route>
             </Route>
         </Routes>
     );
