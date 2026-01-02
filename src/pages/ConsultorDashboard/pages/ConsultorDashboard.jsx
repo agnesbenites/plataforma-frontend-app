@@ -208,20 +208,22 @@ export default function ConsultorDashboard() {
                 <Route index element={<ConsultorHomePanel />} />
                 
                 {/* Rota /consultor/dashboard */}
-                <Route path="dashboard" element={<ConsultorHomePanel />} />
+                <Route path element={<ConsultorHomePanel />} />
                 
                 {/* Sub-rotas - USANDO OS COMPONENTES IMPORTADOS */}
-                <Route path="dashboard/fila" element={<QueuePanel />} />
-                <Route path="dashboard/chat" element={<ChatPanel />} />
-                <Route path="dashboard/resumo-venda/:vendaId" element={<AttendanceSummaryPanel />} />
-                <Route path="dashboard/analytics" element={<AnalyticsPanel />} />
-                <Route path="dashboard/lojas" element={<StoresPanel />} />
-                <Route path="dashboard/profile" element={<ProfilePanel />} />
-                <Route path="dashboard/historico" element={<HistoryPanel />} />
-                <Route path="dashboard/reviews" element={<ReviewsPanel />} />
-                <Route path="dashboard/treinamentos" element={<TrainingPanel />} />
-                <Route path="dashboard/vendas" element={<SalesTable />} />
-                <Route path="dashboard/report" element={<ReportPanel />} />
+                  {/* Remover "dashboard/" de TODAS as rotas abaixo */}
+                <Route path="fila" element={<QueuePanel />} />
+                <Route path="chat" element={<ChatPanel />} />
+                <Route path="lojas" element={<StoresPanel />} />
+                <Route path="profile" element={<ProfilePanel />} />
+                <Route path="historico" element={<HistoryPanel />} />
+                <Route path="reviews" element={<ReviewsPanel />} />
+                <Route path="treinamentos" element={<TrainingPanel />} />
+                <Route path="vendas" element={<SalesTable />} />
+                <Route path="report" element={<ReportPanel />} />
+                <Route path="resumo-venda/:vendaId" element={<AttendanceSummaryPanel />} />
+                <Route path="analytics" element={<AnalyticsPanel />} />
+</Route>
             </Route>
         </Routes>
     );
