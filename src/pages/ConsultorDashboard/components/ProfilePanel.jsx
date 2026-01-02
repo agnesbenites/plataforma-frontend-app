@@ -1,10 +1,29 @@
 // src/pages/ConsultorDashboard/components/ProfilePanel.jsx
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaFileAlt, FaUpload, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaFileAlt, FaUpload, FaEdit, FaSave, FaTimes, FaPlus, FaTrash } from 'react-icons/fa';
+import { supabase } from '../../../supabaseClient';
 
 const CONSULTOR_PRIMARY = '#2c5aa0';
+
+// Segmentos disponíveis com ícones
+const SEGMENTOS_DISPONIVEIS = [
+  { id: 'Smartphones', nome: 'Smartphones', icon: '📱', cor: '#3498db' },
+  { id: 'Notebooks', nome: 'Notebooks', icon: '💻', cor: '#9b59b6' },
+  { id: 'TVs', nome: 'TVs', icon: '📺', cor: '#e74c3c' },
+  { id: 'Informática', nome: 'Informática', icon: '🖥️', cor: '#34495e' },
+  { id: 'Games', nome: 'Games', icon: '🎮', cor: '#e67e22' },
+  { id: 'Áudio', nome: 'Áudio', icon: '🎧', cor: '#16a085' },
+  { id: 'Móveis', nome: 'Móveis', icon: '🛋️', cor: '#8e44ad' },
+  { id: 'Decoração', nome: 'Decoração', icon: '🪴', cor: '#27ae60' },
+  { id: 'Iluminação', nome: 'Iluminação', icon: '💡', cor: '#f39c12' },
+  { id: 'Eletrodomésticos', nome: 'Eletrodomésticos', icon: '🏠', cor: '#2c3e50' },
+  { id: 'Moda', nome: 'Moda', icon: '👔', cor: '#c0392b' },
+  { id: 'Beleza', nome: 'Beleza', icon: '💄', cor: '#e91e63' },
+  { id: 'Esportes', nome: 'Esportes', icon: '⚽', cor: '#ff5722' },
+  { id: 'Livros', nome: 'Livros', icon: '📚', cor: '#795548' },
+];
 
 const ProfilePanel = () => {
   const navigate = useNavigate();
@@ -12,35 +31,133 @@ const ProfilePanel = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingCurriculo, setUploadingCurriculo] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [perfil, setPerfil] = useState({
-    nome: 'João Silva',
-    email: 'joao.silva@email.com',
-    telefone: '(11) 98765-4321',
-    cpf: '123.456.789-00',
-    dataNascimento: '15/03/1990',
-    endereco: 'Rua Exemplo, 123',
-    bairro: 'Centro',
-    cidade: 'São Paulo',
-    estado: 'SP',
-    cep: '01234-567',
-    bio: 'Consultor de vendas com 5 anos de experiência em eletrônicos e informática. Especializado em atendimento personalizado e fidelização de clientes.',
+    nome: '',
+    email: '',
+    telefone: '',
+    cpf: '',
+    dataNascimento: '',
+    endereco: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+    cep: '',
+    bio: '',
     curriculoUrl: null,
     curriculoNome: null,
     dataUploadCurriculo: null,
+    segmentosAtendidos: [], // NOVO
   });
 
   const [editedPerfil, setEditedPerfil] = useState({...perfil});
+  const [showAddSegmento, setShowAddSegmento] = useState(false);
+
+  // Carregar dados do consultor
+  useEffect(() => {
+    carregarPerfil();
+  }, []);
+
+  const carregarPerfil = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/consultor/login');
+        return;
+      }
+
+      const { data: consultor, error } = await supabase
+        .from('consultores')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      setPerfil({
+        nome: consultor.nome || '',
+        email: user.email || '',
+        telefone: consultor.telefone || '',
+        cpf: consultor.cpf || '',
+        dataNascimento: consultor.data_nascimento || '',
+        endereco: consultor.endereco || '',
+        bairro: consultor.bairro || '',
+        cidade: consultor.cidade || '',
+        estado: consultor.estado || '',
+        cep: consultor.cep || '',
+        bio: consultor.bio || '',
+        curriculoUrl: consultor.curriculo_url || null,
+        curriculoNome: consultor.curriculo_nome || null,
+        dataUploadCurriculo: consultor.curriculo_upload_data || null,
+        segmentosAtendidos: consultor.segmentos_atendidos || [],
+      });
+
+      setEditedPerfil({
+        nome: consultor.nome || '',
+        email: user.email || '',
+        telefone: consultor.telefone || '',
+        cpf: consultor.cpf || '',
+        dataNascimento: consultor.data_nascimento || '',
+        endereco: consultor.endereco || '',
+        bairro: consultor.bairro || '',
+        cidade: consultor.cidade || '',
+        estado: consultor.estado || '',
+        cep: consultor.cep || '',
+        bio: consultor.bio || '',
+        curriculoUrl: consultor.curriculo_url || null,
+        curriculoNome: consultor.curriculo_nome || null,
+        dataUploadCurriculo: consultor.curriculo_upload_data || null,
+        segmentosAtendidos: consultor.segmentos_atendidos || [],
+      });
+
+      setLoading(false);
+      
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      setLoading(false);
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
     setEditedPerfil({...perfil});
   };
 
-  const handleSave = () => {
-    setPerfil({...editedPerfil});
-    setIsEditing(false);
-    alert('✅ Perfil atualizado com sucesso!');
+  const handleSave = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('consultores')
+        .update({
+          nome: editedPerfil.nome,
+          telefone: editedPerfil.telefone,
+          cpf: editedPerfil.cpf,
+          data_nascimento: editedPerfil.dataNascimento,
+          endereco: editedPerfil.endereco,
+          bairro: editedPerfil.bairro,
+          cidade: editedPerfil.cidade,
+          estado: editedPerfil.estado,
+          cep: editedPerfil.cep,
+          bio: editedPerfil.bio,
+          segmentos_atendidos: editedPerfil.segmentosAtendidos,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setPerfil({...editedPerfil});
+      setIsEditing(false);
+      alert('✅ Perfil atualizado com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
+      alert('❌ Erro ao salvar perfil. Tente novamente.');
+    }
   };
 
   const handleCancel = () => {
@@ -48,8 +165,9 @@ const ProfilePanel = () => {
     setEditedPerfil({...perfil});
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
+      await supabase.auth.signOut();
       localStorage.clear();
       navigate('/consultor/login');
     }
@@ -59,7 +177,6 @@ const ProfilePanel = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validar tipo de arquivo
     const allowedTypes = ['application/pdf', 'application/msword', 
                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(file.type)) {
@@ -67,7 +184,6 @@ const ProfilePanel = () => {
       return;
     }
 
-    // Validar tamanho (5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('❌ Arquivo muito grande. Máximo 5MB.');
       return;
@@ -76,18 +192,44 @@ const ProfilePanel = () => {
     setUploadingCurriculo(true);
 
     try {
-      // Aqui você faria o upload real para o servidor/Supabase
-      // Por enquanto, simulando:
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Upload para Supabase Storage
+      const fileName = `curriculos/${user.id}/${Date.now()}_${file.name}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documentos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const { data: urlData } = supabase.storage
+        .from('documentos')
+        .getPublicUrl(fileName);
+
+      // Atualizar no banco
+      const { error: updateError } = await supabase
+        .from('consultores')
+        .update({
+          curriculo_url: urlData.publicUrl,
+          curriculo_nome: file.name,
+          curriculo_upload_data: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
 
       setPerfil({
         ...perfil,
-        curriculoUrl: URL.createObjectURL(file),
+        curriculoUrl: urlData.publicUrl,
         curriculoNome: file.name,
         dataUploadCurriculo: new Date().toISOString(),
       });
 
       alert('✅ Currículo enviado com sucesso!');
+      
     } catch (error) {
       console.error('Erro ao enviar currículo:', error);
       alert('❌ Erro ao enviar currículo. Tente novamente.');
@@ -96,16 +238,50 @@ const ProfilePanel = () => {
     }
   };
 
+  // NOVO: Adicionar segmento
+  const adicionarSegmento = (segmento) => {
+    if (!editedPerfil.segmentosAtendidos.includes(segmento.id)) {
+      setEditedPerfil({
+        ...editedPerfil,
+        segmentosAtendidos: [...editedPerfil.segmentosAtendidos, segmento.id],
+      });
+    }
+    setShowAddSegmento(false);
+  };
+
+  // NOVO: Remover segmento
+  const removerSegmento = (segmentoId) => {
+    setEditedPerfil({
+      ...editedPerfil,
+      segmentosAtendidos: editedPerfil.segmentosAtendidos.filter(s => s !== segmentoId),
+    });
+  };
+
+  // NOVO: Obter dados do segmento
+  const getSegmentoData = (segmentoId) => {
+    return SEGMENTOS_DISPONIVEIS.find(s => s.id === segmentoId) || 
+      { id: segmentoId, nome: segmentoId, icon: '📦', cor: '#95a5a6' };
+  };
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.loadingSpinner}>🔄</div>
+        <p>Carregando perfil...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
           <div style={styles.avatar}>
-            {perfil.nome.charAt(0)}
+            {perfil.nome.charAt(0) || 'C'}
           </div>
           <div>
-            <h1 style={styles.nome}>{perfil.nome}</h1>
+            <h1 style={styles.nome}>{perfil.nome || 'Consultor'}</h1>
             <p style={styles.email}>{perfil.email}</p>
           </div>
         </div>
@@ -133,6 +309,81 @@ const ProfilePanel = () => {
         </div>
       </div>
 
+      {/* NOVO: Card de Segmentos Atendidos - DESTAQUE */}
+      <div style={styles.segmentosDestaque}>
+        <div style={styles.segmentosHeader}>
+          <h2 style={styles.segmentosTitle}>🎯 Segmentos Atendidos</h2>
+          {isEditing && (
+            <button 
+              onClick={() => setShowAddSegmento(!showAddSegmento)}
+              style={styles.addSegmentoBtn}
+            >
+              <FaPlus /> Adicionar
+            </button>
+          )}
+        </div>
+
+        {showAddSegmento && isEditing && (
+          <div style={styles.segmentosDisponiveis}>
+            <p style={styles.segmentosHelp}>Clique para adicionar:</p>
+            <div style={styles.segmentosGrid}>
+              {SEGMENTOS_DISPONIVEIS
+                .filter(seg => !editedPerfil.segmentosAtendidos.includes(seg.id))
+                .map(segmento => (
+                  <button
+                    key={segmento.id}
+                    onClick={() => adicionarSegmento(segmento)}
+                    style={{
+                      ...styles.segmentoDisponivel,
+                      borderColor: segmento.cor,
+                    }}
+                  >
+                    <span style={styles.segmentoIcon}>{segmento.icon}</span>
+                    <span>{segmento.nome}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <div style={styles.segmentosList}>
+          {(isEditing ? editedPerfil.segmentosAtendidos : perfil.segmentosAtendidos).length === 0 ? (
+            <div style={styles.noSegmentos}>
+              <p>Nenhum segmento selecionado</p>
+              {isEditing && (
+                <small>Clique em "Adicionar" para escolher seus segmentos</small>
+              )}
+            </div>
+          ) : (
+            (isEditing ? editedPerfil.segmentosAtendidos : perfil.segmentosAtendidos).map(segId => {
+              const segData = getSegmentoData(segId);
+              return (
+                <div
+                  key={segId}
+                  style={{
+                    ...styles.segmentoCard,
+                    backgroundColor: segData.cor + '15',
+                    borderColor: segData.cor,
+                  }}
+                >
+                  <span style={styles.segmentoCardIcon}>{segData.icon}</span>
+                  <span style={styles.segmentoCardNome}>{segData.nome}</span>
+                  {isEditing && (
+                    <button
+                      onClick={() => removerSegmento(segId)}
+                      style={styles.removeSegmentoBtn}
+                      title="Remover segmento"
+                    >
+                      <FaTrash size={12} />
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
       {/* Conteúdo Principal */}
       <div style={styles.content}>
         {/* Coluna Esquerda - Dados Pessoais */}
@@ -149,8 +400,8 @@ const ProfilePanel = () => {
               <InfoField
                 label="Email"
                 value={isEditing ? editedPerfil.email : perfil.email}
-                isEditing={isEditing}
-                onChange={(value) => setEditedPerfil({...editedPerfil, email: value})}
+                isEditing={false} // Email não editável
+                onChange={() => {}}
               />
               <InfoField
                 label="Telefone"
@@ -217,9 +468,10 @@ const ProfilePanel = () => {
                 onChange={(e) => setEditedPerfil({...editedPerfil, bio: e.target.value})}
                 style={styles.bioTextarea}
                 rows={4}
+                placeholder="Conte um pouco sobre sua experiência como consultor..."
               />
             ) : (
-              <p style={styles.bioText}>{perfil.bio}</p>
+              <p style={styles.bioText}>{perfil.bio || 'Nenhuma biografia adicionada ainda.'}</p>
             )}
           </div>
         </div>
@@ -285,7 +537,7 @@ const ProfilePanel = () => {
               <StatCard icon="🛒" label="Vendas no Mês" value="156" />
               <StatCard icon="💰" label="Comissão Acumulada" value="R$ 6.240" />
               <StatCard icon="⭐" label="Avaliação Média" value="4.8" />
-              <StatCard icon="🏪" label="Lojas Ativas" value="3" />
+              <StatCard icon="🏪" label="Lojas Ativas" value={perfil.segmentosAtendidos.length} />
             </div>
           </div>
         </div>
@@ -302,11 +554,11 @@ const InfoField = ({ label, value, isEditing, onChange }) => (
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange && onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         style={styles.infoInput}
       />
     ) : (
-      <p style={styles.infoValue}>{value}</p>
+      <p style={styles.infoValue}>{value || '-'}</p>
     )}
   </div>
 );
@@ -325,6 +577,18 @@ const styles = {
     backgroundColor: '#f8f9fa',
     minHeight: '100vh',
     padding: '25px',
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    gap: '15px',
+  },
+  loadingSpinner: {
+    fontSize: '3rem',
+    animation: 'spin 1s linear infinite',
   },
   header: {
     backgroundColor: 'white',
@@ -422,6 +686,112 @@ const styles = {
     gap: '8px',
     fontSize: '14px',
   },
+  
+  // NOVO: Estilos do Card de Segmentos Atendidos
+  segmentosDestaque: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '25px',
+    marginBottom: '25px',
+    boxShadow: '0 4px 15px rgba(44, 90, 160, 0.15)',
+    border: '2px solid ' + CONSULTOR_PRIMARY,
+  },
+  segmentosHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  segmentosTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: CONSULTOR_PRIMARY,
+    margin: 0,
+  },
+  addSegmentoBtn: {
+    backgroundColor: CONSULTOR_PRIMARY,
+    color: 'white',
+    border: 'none',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '14px',
+  },
+  segmentosDisponiveis: {
+    backgroundColor: '#f8f9fa',
+    padding: '15px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+  },
+  segmentosHelp: {
+    fontSize: '14px',
+    color: '#666',
+    marginBottom: '10px',
+  },
+  segmentosGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+    gap: '10px',
+  },
+  segmentoDisponivel: {
+    backgroundColor: 'white',
+    border: '2px solid',
+    borderRadius: '8px',
+    padding: '10px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s',
+  },
+  segmentosList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
+    minHeight: '60px',
+  },
+  segmentoCard: {
+    border: '2px solid',
+    borderRadius: '12px',
+    padding: '12px 18px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '15px',
+    fontWeight: '600',
+    position: 'relative',
+  },
+  segmentoCardIcon: {
+    fontSize: '1.5rem',
+  },
+  segmentoCardNome: {
+    color: '#333',
+  },
+  removeSegmentoBtn: {
+    backgroundColor: '#dc3545',
+    color: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: '24px',
+    height: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    marginLeft: '8px',
+  },
+  noSegmentos: {
+    textAlign: 'center',
+    padding: '30px',
+    color: '#999',
+  },
+  
   content: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
@@ -591,5 +961,22 @@ const styles = {
     margin: 0,
   },
 };
+
+// Adicionar animação de loading
+if (typeof document !== 'undefined') {
+  const styleSheet = document.styleSheets[0];
+  if (styleSheet) {
+    try {
+      styleSheet.insertRule(`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `, styleSheet.cssRules.length);
+    } catch (e) {
+      // Ignora se já existir
+    }
+  }
+}
 
 export default ProfilePanel;

@@ -1,353 +1,368 @@
-// web-consultor/src/components/AnalyticsPanel.jsx
-
+// src/pages/ConsultorDashboard/components/AnalyticsPanel.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 
-const MetricCard = ({ title, value, detail, loading, color }) => (
-    <div style={analyticsStyles.card}>
-        <h4 style={analyticsStyles.cardTitle}>{title}</h4>
-        <p style={{...analyticsStyles.cardValue, color: color || '#364fab'}}>
-            {loading ? '...' : value}
-        </p>
-        {detail && <small style={analyticsStyles.cardDetail}>{detail}</small>}
-    </div>
-);
+const CONSULTOR_PRIMARY = "#2c5aa0";
+const CONSULTOR_LIGHT_BG = "#eaf2ff";
 
 const AnalyticsPanel = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [productStock, setProductStock] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [consultorId, setConsultorId] = useState(null);
-    
-    const [analytics, setAnalytics] = useState({
-        avgTime: '-- min',
-        dailyCount: 0,
-        commissionValue: 'R$ 0,00',
-        closedSales: 0,
-        qrCodesSent: 0,
-        rating: 0,
-        associatedStores: [],
-        associatedSegments: []
-    });
+  const [analytics, setAnalytics] = useState({
+    totalComissao: 0,
+    vendasMes: 0,
+    ticketMedio: 0,
+    atendimentosHoje: 0,
+    lojas: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [buscaProduto, setBuscaProduto] = useState('');
+  const [resultadosBusca, setResultadosBusca] = useState([]);
+  const [buscando, setBuscando] = useState(false);
 
-    useEffect(() => {
-        const carregarDados = async () => {
-            setLoading(true);
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                
-                if (!user) {
-                    setLoading(false);
-                    return;
-                }
-                
-                setConsultorId(user.id);
-                await carregarMetricas(user.id);
-                
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        
-        carregarDados();
-    }, []);
+  const consultorId = localStorage.getItem('userId');
 
-    const carregarMetricas = async (userId) => {
-        try {
-            const dataInicio = new Date();
-            dataInicio.setDate(dataInicio.getDate() - 30);
-            
-            const { data: vendas } = await supabase
-                .from('vendas')
-                .select('*')
-                .eq('consultor_id', userId)
-                .gte('created_at', dataInicio.toISOString());
-            
-            const hoje = new Date().toISOString().split('T')[0];
-            const { data: atendimentosHoje } = await supabase
-                .from('atendimentos')
-                .select('*')
-                .eq('consultor_id', userId)
-                .gte('created_at', `${hoje}T00:00:00`);
-            
-            const { data: lojas } = await supabase
-                .from('consultor_lojas')
-                .select('loja:lojas_corrigida(nome_fantasia)')
-                .eq('consultor_id', userId)
-                .eq('status', 'aprovado');
-            
-            const { data: segmentos } = await supabase
-                .from('consultor_segmentos')
-                .select('segmento:segmentos(nome)')
-                .eq('consultor_id', userId);
-            
-            const { data: avaliacoes } = await supabase
-                .from('avaliacoes')
-                .select('nota')
-                .eq('consultor_id', userId);
-            
-            const vendasConcluidas = vendas?.filter(v => v.status === 'concluida') || [];
-            const totalComissao = vendasConcluidas.reduce((acc, v) => acc + (parseFloat(v.comissao) || 0), 0);
-            const mediaAvaliacao = avaliacoes?.length > 0 
-                ? (avaliacoes.reduce((acc, a) => acc + a.nota, 0) / avaliacoes.length).toFixed(1)
-                : 0;
-            
-            let tempoMedio = '-- min';
-            if (atendimentosHoje?.length > 0) {
-                const atendimentosComTempo = atendimentosHoje.filter(a => a.duracao_minutos);
-                if (atendimentosComTempo.length > 0) {
-                    const totalMinutos = atendimentosComTempo.reduce((acc, a) => acc + a.duracao_minutos, 0);
-                    tempoMedio = `${Math.round(totalMinutos / atendimentosComTempo.length)} min`;
-                }
-            }
-            
-            setAnalytics({
-                avgTime: tempoMedio,
-                dailyCount: atendimentosHoje?.length || 0,
-                commissionValue: `R$ ${totalComissao.toFixed(2).replace('.', ',')}`,
-                closedSales: vendasConcluidas.length,
-                qrCodesSent: vendas?.length || 0,
-                rating: mediaAvaliacao,
-                associatedStores: lojas?.map(l => l.loja?.nome_fantasia).filter(Boolean) || [],
-                associatedSegments: segmentos?.map(s => s.segmento?.nome).filter(Boolean) || []
-            });
-            
-        } catch (error) {
-            console.error('Erro ao carregar métricas:', error);
-        }
-    };
+  useEffect(() => {
+    carregarAnalytics();
+  }, []);
 
-    const handleSearch = async () => {
-        if (!searchTerm.trim()) {
-            setProductStock('Digite um termo para buscar.');
-            return;
-        }
-        
-        setProductStock('Buscando...');
-        
-        try {
-            const { data, error } = await supabase
-                .from('produtos')
-                .select('nome, estoque, loja:lojas_corrigida(nome_fantasia)')
-                .or(`sku.ilike.%${searchTerm}%,nome.ilike.%${searchTerm}%`)
-                .limit(5);
-            
-            if (error) throw error;
-            
-            if (data && data.length > 0) {
-                const resultados = data.map(p => 
-                    `${p.nome}: ${p.estoque} un.${p.loja ? ` (${p.loja.nome_fantasia})` : ''}`
-                ).join('\n');
-                setProductStock(resultados);
-            } else {
-                setProductStock('Produto não encontrado.');
-            }
-        } catch (error) {
-            setProductStock('Erro ao buscar produto.');
-        }
-    };
+  const carregarAnalytics = async () => {
+    try {
+      setLoading(true);
 
-    const handleGenerateQR = () => {
-        alert('Para gerar um QR Code, vá até a tela de Atendimento e finalize uma venda.');
-    };
+      // Buscar vendas do mês atual
+      const primeiroDiaMes = new Date();
+      primeiroDiaMes.setDate(1);
+      primeiroDiaMes.setHours(0, 0, 0, 0);
 
+      const { data: vendas, error: erroVendas } = await supabase
+        .from('pedidos')
+        .select('valor_total, valor_comissao, created_at, loja:lojas(nome_fantasia)')
+        .eq('consultor_id', consultorId)
+        .gte('created_at', primeiroDiaMes.toISOString());
+
+      if (erroVendas) throw erroVendas;
+
+      // Buscar atendimentos de hoje
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const { data: atendimentos, error: erroAtendimentos } = await supabase
+        .from('pedidos')
+        .select('id')
+        .eq('consultor_id', consultorId)
+        .gte('created_at', hoje.toISOString());
+
+      if (erroAtendimentos) throw erroAtendimentos;
+
+      // Buscar lojas associadas
+      const { data: lojas, error: erroLojas } = await supabase
+        .from('aprovacoes_consultores')
+        .select('loja:lojas(id, nome_fantasia, cidade, estado, segmento)')
+        .eq('consultor_id', consultorId)
+        .eq('status', 'aprovado');
+
+      if (erroLojas) throw erroLojas;
+
+      // Calcular métricas
+      const totalComissao = vendas?.reduce((acc, v) => acc + (v.valor_comissao || 0), 0) || 0;
+      const vendasMes = vendas?.length || 0;
+      const ticketMedio = vendasMes > 0 
+        ? vendas.reduce((acc, v) => acc + v.valor_total, 0) / vendasMes 
+        : 0;
+
+      setAnalytics({
+        totalComissao,
+        vendasMes,
+        ticketMedio,
+        atendimentosHoje: atendimentos?.length || 0,
+        lojas: lojas?.map(l => l.loja) || []
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const buscarProduto = async () => {
+    if (!buscaProduto.trim()) {
+      alert('Digite o nome ou SKU do produto');
+      return;
+    }
+
+    try {
+      setBuscando(true);
+      setResultadosBusca([]);
+
+      const { data, error } = await supabase
+        .from('produtos')
+        .select(`
+          id,
+          nome,
+          sku,
+          preco,
+          estoque,
+          loja:lojas(
+            id,
+            nome_fantasia,
+            cidade,
+            estado
+          )
+        `)
+        .or(`nome.ilike.%${buscaProduto}%,sku.ilike.%${buscaProduto}%`)
+        .limit(10);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setResultadosBusca(data);
+      } else {
+        alert('Nenhum produto encontrado');
+      }
+
+    } catch (error) {
+      console.error('Erro ao buscar produto:', error);
+      alert('Erro ao buscar produto. Tente novamente.');
+    } finally {
+      setBuscando(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <div style={analyticsStyles.container}>
-            
-            <h2 style={analyticsStyles.sectionTitle}>📊 Visão Geral e Desempenho</h2>
-            <div style={analyticsStyles.metricsGrid}>
-                <MetricCard title="Atendimentos Hoje" value={analytics.dailyCount} loading={loading} />
-                <MetricCard title="Vendas Fechadas (Mês)" value={analytics.closedSales} loading={loading} />
-                <MetricCard title="Comissão (Mês)" value={analytics.commissionValue} loading={loading} color="#28a745" />
-                <MetricCard title="Avaliação Média" value={analytics.rating > 0 ? `${analytics.rating} ⭐` : 'N/A'} loading={loading} />
-                <MetricCard title="QR Codes Enviados" value={analytics.qrCodesSent} loading={loading} />
-            </div>
-
-            <h3 style={analyticsStyles.sectionSubtitle}>🔧 Ferramentas de Atendimento</h3>
-            
-            <div style={analyticsStyles.toolContainer}>
-                <input 
-                    type="text" 
-                    placeholder="Pesquisar Produto/Estoque (SKU, Nome)" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    style={analyticsStyles.searchInput} 
-                />
-                <button onClick={handleSearch} style={{...analyticsStyles.toolButton, backgroundColor: '#364fab'}}>
-                    🔍 Buscar Estoque
-                </button>
-            </div>
-            {productStock && (
-                <pre style={analyticsStyles.stockResult}>{productStock}</pre>
-            )}
-
-            <button onClick={handleGenerateQR} style={{...analyticsStyles.toolButtonLarge, backgroundColor: '#28a745'}}>
-                📱 Gerar QR Code (Ir para Atendimento)
-            </button>
-
-            <h3 style={analyticsStyles.sectionSubtitle}>🏪 Minha Afiliação</h3>
-
-            <div style={analyticsStyles.infoGrid}>
-                <div style={analyticsStyles.infoCard}>
-                    <h4 style={analyticsStyles.infoTitle}>Lojas Associadas</h4>
-                    <p style={analyticsStyles.infoText}>
-                        {analytics.associatedStores.length > 0 
-                            ? analytics.associatedStores.join(', ')
-                            : 'Nenhuma loja associada'}
-                    </p>
-                </div>
-                <div style={analyticsStyles.infoCard}>
-                    <h4 style={analyticsStyles.infoTitle}>Segmentos</h4>
-                    <p style={analyticsStyles.infoText}>
-                        {analytics.associatedSegments.length > 0 
-                            ? analytics.associatedSegments.join(', ')
-                            : 'Nenhum segmento'}
-                    </p>
-                </div>
-            </div>
-
-            <h3 style={analyticsStyles.sectionSubtitle}>📜 Histórico de Compras Finalizadas</h3>
-            <p style={analyticsStyles.linkText}>
-                Acesse o menu <strong>Histórico</strong> para ver todas as suas vendas.
-            </p>
-        </div>
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Carregando dados...</p>
+      </div>
     );
-};
+  }
 
-const analyticsStyles = {
-    container: {
-        padding: '30px',
-        backgroundColor: '#f8f9fa',
-        overflowY: 'auto',
-        fontFamily: 'Arial, sans-serif',
-        minHeight: '100%',
-    },
-    sectionTitle: {
-        fontSize: '1.5rem',
-        color: '#333',
-        marginBottom: '20px',
-        fontWeight: '600',
-    },
-    sectionSubtitle: {
-        fontSize: '1.2rem',
-        color: '#333',
-        marginTop: '30px',
-        marginBottom: '15px',
-        fontWeight: '600',
-    },
-    metricsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '20px',
-        marginBottom: '30px',
-    },
-    card: {
-        backgroundColor: 'white',
-        padding: '20px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        textAlign: 'center',
-        transition: 'transform 0.2s',
-    },
-    cardTitle: {
-        fontSize: '14px',
-        color: '#6c757d',
-        margin: '0 0 8px 0',
-        fontWeight: '500',
-    },
-    cardValue: {
-        fontSize: '28px',
-        fontWeight: 'bold',
-        color: '#364fab',
-        margin: 0,
-    },
-    cardDetail: {
-        fontSize: '11px',
-        color: '#888',
-        marginTop: '4px',
-        display: 'block',
-    },
-    toolContainer: {
-        display: 'flex',
-        alignItems: 'center',
-        marginBottom: '15px',
-        gap: '10px',
-    },
-    searchInput: {
-        padding: '12px 16px',
-        borderRadius: '8px',
-        border: '2px solid #e0e0e0',
-        flexGrow: 1,
-        fontSize: '14px',
-        outline: 'none',
-        transition: 'border-color 0.2s',
-    },
-    stockResult: {
-        backgroundColor: '#fff3cd',
-        color: '#856404',
-        padding: '15px',
-        borderRadius: '8px',
-        marginBottom: '20px',
-        border: '1px solid #ffeeba',
-        whiteSpace: 'pre-wrap',
-        fontSize: '14px',
-        fontFamily: 'inherit',
-    },
-    toolButton: {
-        padding: '12px 20px',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: '14px',
-        fontWeight: '600',
-        whiteSpace: 'nowrap',
-    },
-    toolButtonLarge: {
-        width: '100%',
-        padding: '14px',
-        backgroundColor: '#28a745',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: '16px',
-        fontWeight: '600',
-        marginBottom: '20px',
-    },
-    infoGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '20px',
-        marginBottom: '30px',
-    },
-    infoCard: {
-        backgroundColor: 'white',
-        padding: '20px',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-    },
-    infoTitle: {
-        fontSize: '14px',
-        color: '#333',
-        marginBottom: '10px',
-        fontWeight: '600',
-    },
-    infoText: {
-        fontSize: '14px',
-        color: '#666',
-        margin: 0,
-    },
-    linkText: {
-        fontSize: '14px',
-        color: '#666',
-        backgroundColor: 'white',
-        padding: '15px',
-        borderRadius: '8px',
-    },
+  return (
+    <div style={{ padding: '2rem', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: CONSULTOR_PRIMARY, marginBottom: '0.5rem' }}>
+            💰 Analítico de Comissões
+          </h1>
+          <p style={{ color: '#64748b' }}>
+            Acompanhe suas métricas de desempenho e vendas
+          </p>
+        </div>
+
+        {/* Cards de Métricas */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          gap: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          {/* Comissão Total */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '2px solid #10b981'
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              💰 Comissão do Mês
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
+              R$ {analytics.totalComissao.toFixed(2)}
+            </div>
+          </div>
+
+          {/* Vendas do Mês */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '2px solid ' + CONSULTOR_PRIMARY
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              📊 Vendas do Mês
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: CONSULTOR_PRIMARY }}>
+              {analytics.vendasMes}
+            </div>
+          </div>
+
+          {/* Ticket Médio */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '2px solid #f59e0b'
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              💳 Ticket Médio
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f59e0b' }}>
+              R$ {analytics.ticketMedio.toFixed(2)}
+            </div>
+          </div>
+
+          {/* Atendimentos Hoje */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '2px solid #8b5cf6'
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              📞 Atendimentos Hoje
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#8b5cf6' }}>
+              {analytics.atendimentosHoje}
+            </div>
+          </div>
+        </div>
+
+        {/* Busca de Produtos */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginBottom: '2rem'
+        }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: CONSULTOR_PRIMARY, marginBottom: '1rem' }}>
+            🔍 Buscar Produto
+          </h2>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+            <input
+              type="text"
+              value={buscaProduto}
+              onChange={(e) => setBuscaProduto(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && buscarProduto()}
+              placeholder="Digite o nome ou SKU do produto..."
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '2px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '1rem'
+              }}
+            />
+            <button
+              onClick={buscarProduto}
+              disabled={buscando}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: CONSULTOR_PRIMARY,
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: buscando ? 'not-allowed' : 'pointer',
+                opacity: buscando ? 0.6 : 1
+              }}
+            >
+              {buscando ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
+
+          {/* Resultados da Busca */}
+          {resultadosBusca.length > 0 && (
+            <div style={{ marginTop: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#475569', marginBottom: '0.75rem' }}>
+                Resultados ({resultadosBusca.length}):
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {resultadosBusca.map((produto) => (
+                  <div 
+                    key={produto.id}
+                    style={{
+                      padding: '1rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      backgroundColor: '#f8fafc'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                      <div>
+                        <div style={{ fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' }}>
+                          {produto.nome}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                          SKU: {produto.sku} | Estoque: {produto.estoque} unidades
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#475569', marginTop: '0.25rem' }}>
+                          📍 {produto.loja.nome_fantasia} - {produto.loja.cidade}/{produto.loja.estado}
+                        </div>
+                      </div>
+                      <div style={{ 
+                        fontSize: '1.25rem', 
+                        fontWeight: 'bold', 
+                        color: '#10b981',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        R$ {produto.preco.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Lojas Associadas */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: CONSULTOR_PRIMARY, marginBottom: '1rem' }}>
+            🏪 Lojas Associadas ({analytics.lojas.length})
+          </h2>
+          {analytics.lojas.length === 0 ? (
+            <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem' }}>
+              Você ainda não está associado a nenhuma loja
+            </p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+              {analytics.lojas.map((loja) => (
+                <div 
+                  key={loja.id}
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = CONSULTOR_PRIMARY;
+                    e.currentTarget.style.backgroundColor = CONSULTOR_LIGHT_BG;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }}
+                >
+                  <div style={{ fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
+                    {loja.nome_fantasia}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                    📍 {loja.cidade}/{loja.estado}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
+                    🏷️ {loja.segmento}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
 };
 
 export default AnalyticsPanel;

@@ -2,13 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar, FaFilter } from 'react-icons/fa';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "@/supabaseClient";
 
 // Inicializar Supabase
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const CONSULTOR_PRIMARY = "#2c5aa0";
 const CONSULTOR_LIGHT_BG = "#eaf2ff";

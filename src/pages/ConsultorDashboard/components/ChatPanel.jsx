@@ -1,8 +1,10 @@
+// src/pages/ConsultorDashboard/components/ChatPanel.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'react-qr-code';
 import { 
   FaUserCircle, 
   FaShoppingCart, 
+  FaWhatsapp, 
   FaTimes, 
   FaSearch,
   FaMicrophone,
@@ -16,43 +18,27 @@ import {
   FaPlus,
   FaTrash,
   FaQrcode,
-  FaBars,
-  FaChevronLeft
+  FaMoneyBillWave
 } from 'react-icons/fa';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 
 const API_URL = 'https://plataforma-consultoria-mvp.onrender.com';
 
 const ChatPanel = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  // Estado para controlar menu lateral
-  const [menuVisivel, setMenuVisivel] = useState(false);
-  
-  // Dados do cliente - vem da navegação ou do estado
-  const [clienteData, setClienteData] = useState({
-    id: location.state?.clienteId || "c123456",
-    nome: location.state?.clienteNome || "Cliente",
-    nomeVisivel: location.state?.nomeVisivel || false,
-    email: location.state?.clienteEmail || "",
-    status: "Ativo",
-    descricao: "Em atendimento",
-  });
-  
-  // ID do consultor logado
-  const [consultorId, setConsultorId] = useState(null);
   
   // Estados principais
   const [cart, setCart] = useState([]);
   const [showQRCode, setShowQRCode] = useState(false);
   const [vendaId, setVendaId] = useState(null);
+  const [stripePaymentLink, setStripePaymentLink] = useState(null);
   const [saleStatus, setSaleStatus] = useState('idle');
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'consultor', text: 'Olá! Em que posso ajudar?', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+    { id: 1, sender: 'consultor', text: 'Olá! Em que posso ajudar?', time: '10:00' },
+    { id: 2, sender: 'cliente', text: 'Gostaria do Smartwatch X e de um fone Bluetooth.', time: '10:01' },
   ]);
   
   // Estados multimídia
@@ -63,9 +49,49 @@ const ChatPanel = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isOnCall, setIsOnCall] = useState(false);
   
-  // Estados de produtos (carregados da API)
-  const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
-  const [loadingProdutos, setLoadingProdutos] = useState(true);
+  // Estados do consultor
+  const [consultorId, setConsultorId] = useState(null);
+  const [consultorData, setConsultorData] = useState(null);
+  const [clienteData, setClienteData] = useState({
+    id: "c123456",
+    nome: "Cliente Exemplo",
+    nomeVisivel: false,
+    email: "cliente.exemplo@email.com",
+    status: "Ativo",
+    descricao: "Em busca de produtos",
+    lojaId: "loja_123"
+  });
+  
+  // Produtos disponíveis
+  const [produtosDisponiveis, setProdutosDisponiveis] = useState([
+    { 
+      id: 'prod1', 
+      name: 'Smartwatch X', 
+      price: 350.00, 
+      sku: 'SWX-2024', 
+      categoria: 'eletrônicos', 
+      cor: 'Preto',
+      estoque: 10
+    },
+    { 
+      id: 'prod2', 
+      name: 'Fone Bluetooth', 
+      price: 120.00, 
+      sku: 'FB-2024', 
+      categoria: 'eletrônicos', 
+      cor: 'Branco',
+      estoque: 15
+    },
+    { 
+      id: 'prod3', 
+      name: 'Capa Protetora', 
+      price: 45.00, 
+      sku: 'CAP-001', 
+      categoria: 'acessórios', 
+      cor: 'Transparente',
+      estoque: 20
+    },
+  ]);
   
   // Refs
   const mediaRecorderRef = useRef(null);
@@ -73,13 +99,43 @@ const ChatPanel = () => {
   const fileInputRef = useRef(null);
   const chatMessagesRef = useRef(null);
   
-  // Carregar dados do consultor logado
+  // Carregar dados do consultor
   useEffect(() => {
     const carregarConsultor = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        
         if (user) {
-          setConsultorId(user.id);
+          const { data: consultor, error } = await supabase
+            .from('consultores')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (error) {
+            console.warn('Consultor não encontrado, criando registro...');
+            
+            // Criar registro se não existir
+            const { data: novoConsultor, error: createError } = await supabase
+              .from('consultores')
+              .insert({
+                user_id: user.id,
+                nome: user.email?.split('@')[0] || 'Consultor',
+                email: user.email,
+                percentual_comissao: 5, // Percentual padrão
+                ativo: true
+              })
+              .select()
+              .single();
+            
+            if (createError) throw createError;
+            
+            setConsultorData(novoConsultor);
+            setConsultorId(novoConsultor.id);
+          } else {
+            setConsultorData(consultor);
+            setConsultorId(consultor.id);
+          }
         }
       } catch (error) {
         console.error('Erro ao carregar consultor:', error);
@@ -89,64 +145,11 @@ const ChatPanel = () => {
     carregarConsultor();
   }, []);
   
-  // Carregar produtos da loja atual
-  useEffect(() => {
-    const carregarProdutos = async () => {
-      setLoadingProdutos(true);
-      try {
-        const lojistaId = localStorage.getItem('lojistaAtual');
-        
-        if (lojistaId) {
-          // Buscar produtos da loja específica
-          const { data, error } = await supabase
-            .from('produtos')
-            .select('*')
-            .eq('loja_id', lojistaId)
-            .eq('ativo', true)
-            .gt('estoque', 0);
-          
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            setProdutosDisponiveis(data.map(p => ({
-              id: p.id,
-              name: p.nome,
-              price: parseFloat(p.preco),
-              sku: p.sku || `SKU-${p.id.substring(0, 6)}`,
-              categoria: p.categoria || 'Geral',
-              cor: p.cor || 'N/A',
-              estoque: p.estoque || 0,
-              imagem: p.imagem_url
-            })));
-          } else {
-            // Produtos de demonstração se não houver produtos cadastrados
-            setProdutosDisponiveis([
-              { id: 'demo1', name: 'Produto Demonstração 1', price: 99.90, sku: 'DEMO-001', categoria: 'Demo', cor: 'N/A', estoque: 10 },
-              { id: 'demo2', name: 'Produto Demonstração 2', price: 149.90, sku: 'DEMO-002', categoria: 'Demo', cor: 'N/A', estoque: 5 },
-            ]);
-          }
-        } else {
-          // Sem loja selecionada - produtos de demonstração
-          setProdutosDisponiveis([
-            { id: 'demo1', name: 'Smartwatch X', price: 350.00, sku: 'SWX-2024', categoria: 'Eletrônicos', cor: 'Preto', estoque: 10 },
-            { id: 'demo2', name: 'Fone Bluetooth', price: 120.00, sku: 'FB-2024', categoria: 'Eletrônicos', cor: 'Branco', estoque: 15 },
-            { id: 'demo3', name: 'Capa Protetora', price: 45.00, sku: 'CAP-001', categoria: 'Acessórios', cor: 'Transparente', estoque: 20 },
-          ]);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar produtos:', error);
-        // Fallback para produtos de demonstração
-        setProdutosDisponiveis([
-          { id: 'demo1', name: 'Smartwatch X', price: 350.00, sku: 'SWX-2024', categoria: 'Eletrônicos', cor: 'Preto', estoque: 10 },
-          { id: 'demo2', name: 'Fone Bluetooth', price: 120.00, sku: 'FB-2024', categoria: 'Eletrônicos', cor: 'Branco', estoque: 15 },
-        ]);
-      } finally {
-        setLoadingProdutos(false);
-      }
-    };
-    
-    carregarProdutos();
-  }, []);
+  // Função para calcular comissão
+  const calcularComissao = (valorTotal) => {
+    const percentual = consultorData?.percentual_comissao || 5;
+    return (valorTotal * percentual) / 100;
+  };
   
   // Filtrar produtos
   const produtosFiltrados = searchTerm 
@@ -154,7 +157,7 @@ const ChatPanel = () => {
         produto.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         produto.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
         produto.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (produto.cor && produto.cor.toLowerCase().includes(searchTerm.toLowerCase()))
+        produto.cor.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : produtosDisponiveis;
   
@@ -169,10 +172,8 @@ const ChatPanel = () => {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
-    setMessages(prev => [...prev, newMessage]);
+    setMessages([...messages, newMessage]);
     setMessage('');
-    
-    // TODO: Enviar mensagem via WebSocket para o cliente
   };
   
   const handleKeyPress = (e) => {
@@ -206,11 +207,8 @@ const ChatPanel = () => {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        setMessages(prev => [...prev, audioMessage]);
+        setMessages([...messages, audioMessage]);
         setIsRecording(false);
-        
-        // Limpar stream
-        stream.getTracks().forEach(track => track.stop());
       };
       
       mediaRecorder.start();
@@ -219,52 +217,33 @@ const ChatPanel = () => {
       
     } catch (error) {
       console.error('Erro ao acessar microfone:', error);
-      alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+      alert('Não foi possível acessar o microfone.');
     }
   };
   
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop());
     }
   };
   
-  // Vídeo - CORRIGIDO
+  // Vídeo
   const toggleVideo = async () => {
     if (isVideoActive) {
-      // Parar vídeo
       if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
         setVideoStream(null);
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
       setIsVideoActive(false);
-      
-      const videoMessage = {
-        id: messages.length + 1,
-        sender: 'system',
-        text: 'Chamada de vídeo encerrada',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, videoMessage]);
-      
     } else {
-      // Iniciar vídeo
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 640, height: 480 },
+          video: true,
           audio: true 
         });
-        
         setVideoStream(stream);
         setIsVideoActive(true);
-        
-        // Conectar stream ao elemento de vídeo
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
         
         const videoMessage = {
           id: messages.length + 1,
@@ -272,32 +251,19 @@ const ChatPanel = () => {
           text: 'Chamada de vídeo iniciada',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        setMessages(prev => [...prev, videoMessage]);
+        setMessages([...messages, videoMessage]);
         
       } catch (error) {
         console.error('Erro ao acessar câmera:', error);
-        alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
+        alert('Não foi possível acessar a câmera.');
       }
     }
   };
-  
-  // Efeito para conectar stream ao vídeo quando ativado
-  useEffect(() => {
-    if (videoRef.current && videoStream) {
-      videoRef.current.srcObject = videoStream;
-    }
-  }, [videoStream, isVideoActive]);
   
   // Imagem
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validar tamanho (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Imagem muito grande. Máximo 5MB.');
-        return;
-      }
-      
       const reader = new FileReader();
       reader.onload = (e) => {
         const imageUrl = e.target.result;
@@ -310,7 +276,7 @@ const ChatPanel = () => {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        setMessages(prev => [...prev, imageMessage]);
+        setMessages([...messages, imageMessage]);
         setSelectedImage(imageUrl);
       };
       reader.readAsDataURL(file);
@@ -321,34 +287,25 @@ const ChatPanel = () => {
     fileInputRef.current.click();
   };
   
-  // Chamada de voz
+  // Chamada
   const toggleCall = () => {
     setIsOnCall(!isOnCall);
     
     const callMessage = {
       id: messages.length + 1,
       sender: 'system',
-      text: isOnCall ? 'Chamada encerrada' : 'Chamada de voz iniciada',
+      text: isOnCall ? 'Chamada encerrada' : 'Chamada iniciada',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setMessages(prev => [...prev, callMessage]);
+    setMessages([...messages, callMessage]);
   };
   
   // Carrinho
   const calculateTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
   
   const addToCart = (product) => {
-    // Verificar estoque antes de adicionar
-    const itemNoCarrinho = cart.find(item => item.id === product.id);
-    const quantidadeAtual = itemNoCarrinho ? itemNoCarrinho.quantity : 0;
-    
-    if (quantidadeAtual >= product.estoque) {
-      alert(`Estoque insuficiente! Disponível: ${product.estoque} unidades.`);
-      return;
-    }
-    
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
@@ -383,7 +340,7 @@ const ChatPanel = () => {
     );
   };
   
-  // Venda
+  // FUNÇÃO ATUALIZADA: Finalizar venda com sistema de comissões para CONSULTOR
   const handleFinalizeSale = async () => {
     if (cart.length === 0) {
       alert("Carrinho vazio! Adicione produtos para finalizar a venda.");
@@ -398,51 +355,120 @@ const ChatPanel = () => {
     setSaleStatus('processando');
     
     try {
-      const salePayload = {
-        consultorId: consultorId,
-        lojistaId: localStorage.getItem('lojistaAtual') || "858f50c0-f472-4d1d-9e6e-21952f40c7e5",
-        clienteId: clienteData.id,
-        clienteEmail: clienteData.email,
-        clienteNome: clienteData.nome,
-        produtos: cart.map(item => ({
-          produtoId: item.id,
-          nome: item.name,
-          quantidade: item.quantity,
-          preco: item.price,
-          total: item.price * item.quantity,
-        })),
-        valorTotal: parseFloat(calculateTotal()),
-      };
+      const { data: { user } } = await supabase.auth.getUser();
       
-      const response = await fetch(`${API_URL}/api/vendas/criar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(salePayload),
+      const { data: consultor, error: consultorError } = await supabase
+        .from('consultores')
+        .select('id, percentual_comissao')
+        .eq('user_id', user.id)
+        .single();
+
+      if (consultorError) throw consultorError;
+
+      const subtotal = cart.reduce((sum, item) => 
+        sum + (item.price * item.quantity), 0
+      );
+      
+      const percentualComissao = consultor.percentual_comissao || 5;
+      const valorComissao = (subtotal * percentualComissao) / 100;
+      const valorTotal = subtotal;
+      const quantidadeItens = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+      console.log(`[Consultor] Criando pedido - Consultor ID: ${consultor.id}, Comissão: ${percentualComissao}%`);
+
+      const { data: pedido, error: pedidoError } = await supabase
+        .from('pedidos')
+        .insert({
+          lojista_id: clienteData.lojaId || localStorage.getItem('lojistaAtual') || "loja_123",
+          cliente_id: clienteData.id,
+          user_id: user.id,
+          consultor_id: consultor.id,
+          vendedor_id: null,
+          valor_total: valorTotal,
+          valor_comissao: valorComissao,
+          percentual_comissao: percentualComissao,
+          quantidade_itens: quantidadeItens,
+          status_separacao: 'QR Code Gerado!',
+          status_pagamento: 'pendente',
+          data_pedido: new Date().toISOString(),
+          produtos: cart.map(item => ({
+            produtoId: item.id,
+            nome: item.name,
+            quantidade: item.quantity,
+            preco: item.price,
+            subtotal: item.price * item.quantity,
+          }))
+        })
+        .select()
+        .single();
+
+      if (pedidoError) throw pedidoError;
+
+      console.log('[Consultor] Pedido criado:', pedido.id);
+
+      const itens = cart.map(item => ({
+        pedido_id: pedido.id,
+        produto_id: item.id,
+        quantidade: item.quantity,
+        preco_unitario: item.price,
+        subtotal: item.price * item.quantity,
+      }));
+
+      const { error: itensError } = await supabase
+        .from('itens_pedido')
+        .insert(itens);
+
+      if (itensError) console.warn('Erro ao criar itens do pedido:', itensError);
+
+      const response = await fetch(`${API_URL}/api/stripe/create-payment-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedidoId: pedido.id,
+          valorTotal: valorTotal,
+          clienteEmail: clienteData.email,
+          clienteNome: clienteData.nome,
+          produtos: cart.map(item => ({
+            nome: item.name,
+            preco: item.price,
+            quantidade: item.quantity,
+          })),
+          consultorId: consultor.id,
+          vendedorId: null,
+        })
       });
-      
-      const responseBody = await response.json().catch(() => ({}));
-      
+
       if (!response.ok) {
-        if (response.status === 409) {
-          setSaleStatus('estoque_erro');
-          alert("Alguns produtos estão sem estoque. Atualize o carrinho.");
-        } else {
-          setSaleStatus('erro');
-          alert("Erro ao processar venda. Tente novamente.");
-        }
-        return;
+        throw new Error('Erro ao criar link de pagamento');
       }
-      
-      if (responseBody.success) {
-        setVendaId(responseBody.vendaId);
+
+      const stripeData = await response.json();
+
+      if (stripeData.success && stripeData.paymentLink) {
+        console.log('[Consultor] Link gerado COM SPLIT:', stripeData.paymentLink);
+
+        await supabase
+          .from('pedidos')
+          .update({ 
+            stripe_payment_link: stripeData.paymentLink,
+            valor_comissao: valorComissao
+          })
+          .eq('id', pedido.id);
+
+        setVendaId(pedido.id);
+        setStripePaymentLink(stripeData.paymentLink);
         setShowQRCode(true);
         setSaleStatus('sucesso');
+        
+        console.log(`💰 Comissão gerada: R$ ${valorComissao.toFixed(2)} (${percentualComissao}%)`);
+      } else {
+        throw new Error(stripeData.error || 'Erro ao gerar link de pagamento');
       }
       
     } catch (error) {
-      console.error("Erro:", error);
+      console.error("Erro ao finalizar venda:", error);
       setSaleStatus('erro');
-      alert("Erro de conexão. Verifique sua internet e tente novamente.");
+      alert(`Erro ao finalizar venda: ${error.message}`);
     }
   };
   
@@ -455,10 +481,10 @@ const ChatPanel = () => {
         clienteNome: clienteData.nome,
         vendaId: comVenda ? vendaId : null,
         produtos: comVenda ? cart : [],
-        valorTotal: comVenda ? parseFloat(calculateTotal()) : 0,
+        valorTotal: comVenda ? calculateTotal() : 0,
         status: comVenda ? 'venda_concluida' : 'sem_venda',
         dataAtendimento: new Date().toISOString(),
-        mensagens: messages.filter(m => m.type !== 'audio')
+        mensagens: messages
       };
       
       await fetch(`${API_URL}/api/atendimentos/historico`, {
@@ -467,11 +493,11 @@ const ChatPanel = () => {
         body: JSON.stringify(historicoPayload),
       });
       
-      // Limpar estados
       setCart([]);
       setSaleStatus('idle');
       setShowQRCode(false);
       setVendaId(null);
+      setStripePaymentLink(null);
       
       navigate('/consultor/dashboard/historico');
       
@@ -487,19 +513,12 @@ const ChatPanel = () => {
     }
   };
   
-  // Cleanup - MELHORADO
+  // Cleanup
   useEffect(() => {
     return () => {
-      // Limpar stream de vídeo
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-      }
-      // Limpar gravação de áudio
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-        if (mediaRecorderRef.current.stream) {
-          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-        }
+      if (videoStream) videoStream.getTracks().forEach(track => track.stop());
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop());
       }
     };
   }, [videoStream]);
@@ -513,91 +532,33 @@ const ChatPanel = () => {
   
   // Funções auxiliares
   const getClienteDisplay = () => {
-    return clienteData.nomeVisivel ? clienteData.nome : `Cliente #${clienteData.id.substring(0, 6)}`;
-  };
-  
-  // Voltar para dashboard
-  const voltarParaDashboard = () => {
-    if (window.confirm('Tem certeza que deseja encerrar este atendimento?')) {
-      navigate('/consultor/dashboard');
-    }
+    return clienteData.nomeVisivel ? clienteData.nome : `Cliente #${clienteData.id.substring(1, 7)}`;
   };
   
   return (
     <div style={styles.container}>
       
-      {/* Botão flutuante para mostrar/ocultar menu */}
-      <button 
-        onClick={() => setMenuVisivel(!menuVisivel)}
-        style={styles.menuToggleButton}
-        title={menuVisivel ? "Ocultar menu" : "Mostrar menu"}
-      >
-        {menuVisivel ? <FaChevronLeft /> : <FaBars />}
-      </button>
-      
-      {/* Menu lateral - condicional */}
-      {menuVisivel && (
-        <div style={styles.menuLateral}>
-          <h3 style={styles.menuTitle}>📋 Menu</h3>
-          <button 
-            onClick={() => navigate('/consultor/dashboard')}
-            style={styles.menuButton}
-          >
-            🏠 Voltar ao Dashboard
-          </button>
-          <button 
-            onClick={() => navigate('/consultor/dashboard/fila')}
-            style={styles.menuButton}
-          >
-            👥 Próximo da Fila
-          </button>
-          <button 
-            onClick={() => navigate('/consultor/dashboard/historico')}
-            style={styles.menuButton}
-          >
-            📜 Histórico
-          </button>
-          <div style={styles.menuDivider} />
-          <button 
-            onClick={voltarParaDashboard}
-            style={styles.menuDangerButton}
-          >
-            ❌ Encerrar Atendimento
-          </button>
-        </div>
-      )}
-      
-      {/* Header simplificado */}
+      {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerContent}>
-          <div style={styles.headerTop}>
-            <h1 style={styles.pageTitle}>Atendimento Ativo</h1>
-            <div style={styles.headerActions}>
-              <button 
-                onClick={() => navigate('/consultor/dashboard')}
-                style={styles.backButton}
-                title="Voltar ao dashboard"
-              >
-                <FaChevronLeft /> Voltar
-              </button>
-            </div>
-          </div>
+          <h1 style={styles.pageTitle}>Atendimento Ativo</h1>
           <div style={styles.clienteInfo}>
             <FaUserCircle style={styles.avatar} />
             <div>
               <h2 style={styles.clienteNome}>{getClienteDisplay()} ({clienteData.status})</h2>
               <p style={styles.clienteDescricao}>{clienteData.descricao}</p>
+              {consultorData && (
+                <small style={{ color: '#666', fontSize: '12px' }}>
+                  Consultor: {consultorData.nome} • Comissão: {consultorData.percentual_comissao || 5}%
+                </small>
+              )}
             </div>
           </div>
         </div>
       </div>
       
       {/* Conteúdo Principal */}
-      <div style={{
-        ...styles.mainLayout,
-        marginLeft: menuVisivel ? '250px' : '30px',
-        transition: 'margin-left 0.3s ease'
-      }}>
+      <div style={styles.mainLayout}>
         
         {/* Chat */}
         <div style={styles.chatContainer}>
@@ -609,14 +570,14 @@ const ChatPanel = () => {
               <button
                 style={isOnCall ? styles.controlButtonActive : styles.controlButton}
                 onClick={toggleCall}
-                title="Chamada de voz"
+                title="Chamada"
               >
                 <FaPhone size={14} />
               </button>
               <button
                 style={isVideoActive ? styles.controlButtonActive : styles.controlButton}
                 onClick={toggleVideo}
-                title="Chamada de vídeo"
+                title="Vídeo"
               >
                 <FaVideo size={14} />
               </button>
@@ -624,18 +585,17 @@ const ChatPanel = () => {
           </div>
           
           {/* Vídeo Ativo */}
-          {isVideoActive && (
+          {isVideoActive && videoStream && (
             <div style={styles.videoPreview}>
               <video
                 ref={videoRef}
                 autoPlay
-                playsInline
                 muted
                 style={styles.videoElement}
               />
               <div style={styles.videoOverlay}>
                 <button onClick={toggleVideo} style={styles.stopVideoBtn}>
-                  <FaStopCircle /> Encerrar Vídeo
+                  <FaStopCircle /> Parar
                 </button>
               </div>
             </div>
@@ -657,13 +617,12 @@ const ChatPanel = () => {
                     <FaMicrophone size={12} />
                     <audio controls style={styles.audioPlayer}>
                       <source src={msg.audioUrl} type="audio/webm" />
-                      Seu navegador não suporta áudio.
                     </audio>
                     <span style={styles.msgTime}>{msg.time}</span>
                   </div>
                 ) : msg.type === 'image' ? (
                   <div style={styles.imageContainer}>
-                    <img src={msg.imageUrl} alt="Imagem enviada" style={styles.chatImage} />
+                    <img src={msg.imageUrl} alt="Enviada" style={styles.chatImage} />
                     <span style={styles.msgTime}>{msg.time}</span>
                   </div>
                 ) : (
@@ -682,16 +641,16 @@ const ChatPanel = () => {
               <button
                 onClick={isRecording ? stopRecording : startRecording}
                 style={isRecording ? styles.mediaButtonRecording : styles.mediaButton}
-                title={isRecording ? "Parar gravação" : "Gravar áudio"}
+                title="Áudio"
               >
-                {isRecording ? <FaStop size={14} /> : <FaMicrophone size={14} />}
+                <FaMicrophone size={14} />
                 {isRecording && <span style={styles.recordingDot} />}
               </button>
               
               <button
                 onClick={triggerImageInput}
                 style={styles.mediaButton}
-                title="Enviar imagem"
+                title="Imagem"
               >
                 <FaImage size={14} />
               </button>
@@ -706,7 +665,7 @@ const ChatPanel = () => {
               <button
                 onClick={toggleVideo}
                 style={isVideoActive ? styles.mediaButtonActive : styles.mediaButton}
-                title={isVideoActive ? "Encerrar câmera" : "Iniciar câmera"}
+                title="Câmera"
               >
                 <FaCamera size={14} />
               </button>
@@ -738,34 +697,26 @@ const ChatPanel = () => {
         {/* Sidebar de Vendas */}
         <div style={styles.sidebar}>
           
-          {/* Busca melhorada */}
-          <div style={styles.searchContainer}>
-            <div style={styles.searchBox}>
-              <FaSearch style={styles.searchIcon} />
-              <input
-                type="text"
-                placeholder="Buscar produtos (nome, SKU, categoria)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={styles.searchInput}
-              />
-            </div>
-            <small style={styles.searchHelp}>
-              {searchTerm ? `${produtosFiltrados.length} produto(s) encontrado(s)` : 'Digite para buscar produtos'}
-            </small>
+          {/* Busca */}
+          <div style={styles.searchBox}>
+            <FaSearch style={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Buscar por SKU, nome, cor, categoria..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
           </div>
           
           {/* Carrinho */}
           <div style={styles.cartSection}>
             <h3 style={styles.sectionTitle}>
-              🛒 Carrinho de Vendas ({cart.length})
+              <FaShoppingCart /> Carrinho de Vendas ({cart.length})
             </h3>
             
             {cart.length === 0 ? (
-              <div style={styles.emptyState}>
-                <p style={styles.emptyText}>Carrinho vazio</p>
-                <p style={styles.emptySubtext}>Adicione produtos da lista abaixo</p>
-              </div>
+              <p style={styles.emptyCart}>Carrinho vazio</p>
             ) : (
               <div style={styles.cartItems}>
                 {cart.map(item => (
@@ -795,7 +746,7 @@ const ChatPanel = () => {
                       style={styles.removeItemBtn}
                       title="Remover item"
                     >
-                      <FaTrash size={12} />
+                      <FaTrash size={10} />
                     </button>
                   </div>
                 ))}
@@ -803,47 +754,40 @@ const ChatPanel = () => {
             )}
             
             {cart.length > 0 && (
-              <div style={styles.cartTotal}>
-                <span>Total:</span>
-                <span style={styles.totalValue}>R$ {calculateTotal()}</span>
-              </div>
+              <>
+                <div style={styles.cartTotal}>
+                  <span>Subtotal:</span>
+                  <span>R$ {calculateTotal().toFixed(2)}</span>
+                </div>
+                
+                {/* Informações de comissão */}
+                {consultorData && cart.length > 0 && (
+                  <div style={styles.comissaoInfo}>
+                    <div style={styles.comissaoItem}>
+                      <FaMoneyBillWave size={12} style={{ color: '#28a745' }} />
+                      <span>Comissão ({consultorData.percentual_comissao || 5}%):</span>
+                      <span style={styles.comissaoValor}>
+                        R$ {calcularComissao(calculateTotal()).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
           
           {/* Produtos */}
           <div style={styles.productsSection}>
-            <div style={styles.sectionHeader}>
-              <h4 style={styles.productsTitle}>
-                📦 Produtos Disponíveis 
-                {loadingProdutos && ' (Carregando...)'}
-              </h4>
-              {!loadingProdutos && (
-                <small style={styles.stockInfo}>
-                  {produtosDisponiveis.length} produtos em estoque
-                </small>
-              )}
-            </div>
+            <h4 style={styles.productsTitle}>📦 Produtos Disponíveis</h4>
             <div style={styles.productsList}>
-              {produtosFiltrados.length === 0 ? (
-                <div style={styles.emptyState}>
-                  <p style={styles.emptyText}>Nenhum produto encontrado</p>
-                  <p style={styles.emptySubtext}>Tente outra busca ou limpe o filtro</p>
-                </div>
-              ) : (
-                produtosFiltrados.map(produto => (
-                  <div key={produto.id} style={styles.productCard}>
-                    <div style={styles.productHeader}>
-                      <strong style={styles.productName}>{produto.name}</strong>
-                      <div style={styles.productBadges}>
-                        {produto.estoque < 5 && (
-                          <span style={styles.lowStockBadge}>⚠️ Baixo estoque</span>
-                        )}
-                      </div>
-                    </div>
+              {produtosFiltrados.map(produto => (
+                <div key={produto.id} style={styles.productCard}>
+                  <div style={styles.productInfo}>
+                    <strong style={styles.productName}>{produto.name}</strong>
                     <div style={styles.productDetails}>
                       <small>SKU: {produto.sku}</small>
                       <small>Categoria: {produto.categoria}</small>
-                      {produto.cor !== 'N/A' && <small>Cor: {produto.cor}</small>}
+                      <small>Cor: {produto.cor}</small>
                       <small style={{ 
                         color: produto.estoque < 1 ? '#dc3545' : 
                                produto.estoque < 5 ? '#ffc107' : '#28a745'
@@ -851,24 +795,22 @@ const ChatPanel = () => {
                         Estoque: {produto.estoque}
                       </small>
                     </div>
-                    <div style={styles.productFooter}>
-                      <div style={styles.productPrice}>R$ {produto.price.toFixed(2)}</div>
-                      <button
-                        onClick={() => addToCart(produto)}
-                        style={{
-                          ...styles.addProductBtn,
-                          opacity: produto.estoque > 0 ? 1 : 0.5,
-                          cursor: produto.estoque > 0 ? 'pointer' : 'not-allowed'
-                        }}
-                        disabled={produto.estoque === 0}
-                        title={produto.estoque === 0 ? 'Produto indisponível' : 'Adicionar ao carrinho'}
-                      >
-                        <FaPlus size={12} /> {produto.estoque > 0 ? 'Adicionar' : 'Esgotado'}
-                      </button>
-                    </div>
+                    <div style={styles.productPrice}>R$ {produto.price.toFixed(2)}</div>
                   </div>
-                ))
-              )}
+                  <button
+                    onClick={() => addToCart(produto)}
+                    style={{
+                      ...styles.addProductBtn,
+                      opacity: produto.estoque > 0 ? 1 : 0.5,
+                      cursor: produto.estoque > 0 ? 'pointer' : 'not-allowed'
+                    }}
+                    disabled={produto.estoque === 0}
+                    title={produto.estoque === 0 ? 'Produto indisponível' : 'Adicionar ao carrinho'}
+                  >
+                    <FaPlus size={12} /> {produto.estoque > 0 ? 'Adicionar' : 'Esgotado'}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
           
@@ -902,33 +844,36 @@ const ChatPanel = () => {
                 {showQRCode && vendaId && (
                   <div style={styles.qrBox}>
                     <QRCode 
-                      value={`https://suacomprasmart.com.br/pagamento/${vendaId}`} 
-                      size={120} 
+                      value={stripePaymentLink || `https://suacomprasmart.com.br/pagamento/${vendaId}`} 
+                      size={150} 
                     />
-                    <small style={styles.qrId}>Código: {vendaId.substring(0, 8)}...</small>
+                    <small style={styles.qrId}>ID: {vendaId?.substring(0, 8)}...</small>
                     <p style={styles.qrInstructions}>
-                      Cliente pode pagar escaneando este QR Code
+                      Cliente pode escanear ou acessar o link:
                     </p>
+                    {stripePaymentLink && (
+                      <a 
+                        href={stripePaymentLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={styles.paymentLink}
+                      >
+                        🔗 Abrir Link de Pagamento →
+                      </a>
+                    )}
                   </div>
                 )}
                 <button
-                  onClick={() => salvarNoHistorico(true)}
+                  onClick={() => {
+                    setCart([]);
+                    setSaleStatus('idle');
+                    setShowQRCode(false);
+                    setVendaId(null);
+                    setStripePaymentLink(null);
+                  }}
                   style={styles.continueButton}
                 >
-                  Salvar e Continuar
-                </button>
-              </div>
-            ) : saleStatus === 'estoque_erro' ? (
-              <div style={styles.errorBox}>
-                <p style={styles.errorText}>⚠️ Estoque insuficiente</p>
-                <p style={{ fontSize: '12px', color: '#666' }}>
-                  Alguns produtos não estão mais disponíveis.
-                </p>
-                <button
-                  onClick={() => setSaleStatus('idle')}
-                  style={styles.retryButton}
-                >
-                  Revisar Carrinho
+                  Continuar Atendimento
                 </button>
               </div>
             ) : (
@@ -944,6 +889,10 @@ const ChatPanel = () => {
             )}
             
             <div style={styles.secondaryActions}>
+              <button style={styles.whatsappButton}>
+                <FaWhatsapp /> Enviar no WhatsApp
+              </button>
+              
               <button
                 onClick={handleEncerrarSemVenda}
                 style={styles.cancelButton}
@@ -958,126 +907,28 @@ const ChatPanel = () => {
   );
 };
 
-// Estilos
+// Estilos completos (devido ao limite de caracteres, vou continuar em outro bloco)
 const styles = {
   container: {
     backgroundColor: '#f5f5f5',
     minHeight: '100vh',
     fontFamily: 'Arial, sans-serif',
-    position: 'relative',
   },
-  
-  // Botão flutuante para menu
-  menuToggleButton: {
-    position: 'fixed',
-    left: '15px',
-    top: '15px',
-    zIndex: 1000,
-    backgroundColor: '#2c5aa0',
-    color: 'white',
-    border: 'none',
-    borderRadius: '50%',
-    width: '40px',
-    height: '40px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    transition: 'all 0.3s ease',
-  },
-  
-  // Menu lateral
-  menuLateral: {
-    position: 'fixed',
-    left: 0,
-    top: 0,
-    width: '240px',
-    height: '100vh',
-    backgroundColor: '#ffffff',
-    boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
-    zIndex: 999,
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  menuTitle: {
-    color: '#2c5aa0',
-    fontSize: '18px',
-    marginBottom: '20px',
-    paddingBottom: '10px',
-    borderBottom: '1px solid #eee',
-  },
-  menuButton: {
-    backgroundColor: '#f8f9fa',
-    color: '#333',
-    border: '1px solid #ddd',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontSize: '14px',
-    transition: 'all 0.2s',
-  },
-  menuDangerButton: {
-    backgroundColor: '#fff5f5',
-    color: '#dc3545',
-    border: '1px solid #f5c6cb',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontSize: '14px',
-    transition: 'all 0.2s',
-    marginTop: '10px',
-  },
-  menuDivider: {
-    height: '1px',
-    backgroundColor: '#eee',
-    margin: '10px 0',
-  },
-  
-  // Header
   header: {
     backgroundColor: '#ffffff',
     padding: '20px 30px',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     marginBottom: '20px',
-    transition: 'margin-left 0.3s ease',
   },
   headerContent: {
     maxWidth: '1400px',
     margin: '0 auto',
   },
-  headerTop: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-  },
   pageTitle: {
     color: '#2c5aa0',
     fontSize: '24px',
     fontWeight: 'bold',
-    margin: 0,
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '10px',
-  },
-  backButton: {
-    backgroundColor: '#f8f9fa',
-    color: '#666',
-    border: '1px solid #ddd',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    transition: 'all 0.2s',
+    marginBottom: '20px',
   },
   clienteInfo: {
     display: 'flex',
@@ -1099,8 +950,6 @@ const styles = {
     fontSize: '14px',
     margin: 0,
   },
-  
-  // Layout Principal
   mainLayout: {
     maxWidth: '1400px',
     margin: '0 auto',
@@ -1108,10 +957,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '1fr 400px',
     gap: '20px',
-    transition: 'margin-left 0.3s ease',
   },
-  
-  // Chat Container
   chatContainer: {
     backgroundColor: '#ffffff',
     borderRadius: '12px',
@@ -1135,7 +981,7 @@ const styles = {
   },
   chatControls: {
     display: 'flex',
-    gap: '8px',
+    gap: '10px',
   },
   controlButton: {
     backgroundColor: '#f0f0f0',
@@ -1160,13 +1006,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
-  // Vídeo
   videoPreview: {
-    position: 'relative',
     backgroundColor: '#000000',
-    borderBottom: '1px solid #e8e8e8',
-    height: '300px',
+    position: 'relative',
+    height: '180px',
   },
   videoElement: {
     width: '100%',
@@ -1176,91 +1019,88 @@ const styles = {
   videoOverlay: {
     position: 'absolute',
     bottom: '10px',
-    left: '50%',
-    transform: 'translateX(-50%)',
+    left: '0',
+    right: '0',
+    textAlign: 'center',
   },
   stopVideoBtn: {
-    backgroundColor: '#dc3545',
+    backgroundColor: 'rgba(220, 53, 69, 0.8)',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '6px',
-    padding: '8px 16px',
+    padding: '6px 12px',
+    borderRadius: '4px',
+    fontSize: '12px',
     cursor: 'pointer',
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
+    gap: '5px',
   },
-  
-  // Mensagens
   messagesContainer: {
     flex: 1,
     overflowY: 'auto',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '10px',
   },
   msgConsultor: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#2c5aa0',
-    color: '#ffffff',
-    padding: '12px 16px',
-    borderRadius: '16px 16px 4px 16px',
+    backgroundColor: '#eaf2ff',
+    padding: '10px 15px',
+    borderRadius: '12px 12px 12px 4px',
     maxWidth: '70%',
-    wordWrap: 'break-word',
+    alignSelf: 'flex-start',
+    position: 'relative',
   },
   msgCliente: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-    color: '#333333',
-    padding: '12px 16px',
-    borderRadius: '16px 16px 16px 4px',
+    backgroundColor: '#e8f5e9',
+    padding: '10px 15px',
+    borderRadius: '12px 12px 4px 12px',
     maxWidth: '70%',
-    wordWrap: 'break-word',
+    alignSelf: 'flex-end',
+    position: 'relative',
   },
   msgSystem: {
+    backgroundColor: '#f0f0f0',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    maxWidth: '80%',
     alignSelf: 'center',
-    backgroundColor: '#fff3cd',
-    color: '#856404',
-    padding: '8px 16px',
-    borderRadius: '16px',
     fontSize: '12px',
+    color: '#666666',
+    fontStyle: 'italic',
   },
   msgTime: {
-    display: 'block',
     fontSize: '10px',
-    opacity: 0.7,
+    color: '#999999',
     marginTop: '4px',
+    display: 'block',
     textAlign: 'right',
   },
   audioContainer: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    flexWrap: 'wrap',
+    gap: '10px',
   },
   audioPlayer: {
-    height: '32px',
-    maxWidth: '200px',
+    flex: 1,
+    height: '30px',
   },
   imageContainer: {
-    maxWidth: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '5px',
   },
   chatImage: {
-    maxWidth: '100%',
-    maxHeight: '200px',
+    maxWidth: '200px',
     borderRadius: '8px',
-    display: 'block',
+    border: '1px solid #dddddd',
   },
-  
-  // Input de Mensagem
   inputContainer: {
     padding: '15px 20px',
     borderTop: '1px solid #e8e8e8',
     display: 'flex',
     alignItems: 'flex-end',
-    gap: '12px',
+    gap: '10px',
   },
   mediaButtons: {
     display: 'flex',
@@ -1269,7 +1109,7 @@ const styles = {
   },
   mediaButton: {
     backgroundColor: '#f0f0f0',
-    border: '1px solid #e0e0e0',
+    border: 'none',
     borderRadius: '6px',
     padding: '8px',
     cursor: 'pointer',
@@ -1301,13 +1141,13 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '5px',
-    animation: 'pulse 1s infinite',
   },
   recordingDot: {
     width: '6px',
     height: '6px',
     backgroundColor: '#ffffff',
     borderRadius: '50%',
+    animation: 'blink 1s infinite',
   },
   messageInput: {
     flex: 1,
@@ -1332,8 +1172,6 @@ const styles = {
     justifyContent: 'center',
     transition: 'opacity 0.2s',
   },
-  
-  // Sidebar
   sidebar: {
     backgroundColor: '#ffffff',
     borderRadius: '12px',
@@ -1343,17 +1181,9 @@ const styles = {
     flexDirection: 'column',
     gap: '20px',
     height: 'fit-content',
-    maxHeight: 'calc(100vh - 200px)',
-    overflowY: 'auto',
-  },
-  
-  // Busca melhorada
-  searchContainer: {
-    marginBottom: '10px',
   },
   searchBox: {
     position: 'relative',
-    marginBottom: '8px',
   },
   searchIcon: {
     position: 'absolute',
@@ -1365,20 +1195,11 @@ const styles = {
   },
   searchInput: {
     width: '100%',
-    padding: '12px 12px 12px 40px',
+    padding: '10px 10px 10px 36px',
     border: '1px solid #dddddd',
     borderRadius: '8px',
     fontSize: '14px',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.2s',
   },
-  searchHelp: {
-    color: '#666',
-    fontSize: '11px',
-    paddingLeft: '5px',
-  },
-  
-  // Carrinho
   cartSection: {
     borderBottom: '1px solid #e8e8e8',
     paddingBottom: '15px',
@@ -1392,24 +1213,14 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
   },
-  emptyState: {
+  emptyCart: {
     textAlign: 'center',
-    padding: '20px 0',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
-  },
-  emptyText: {
-    color: '#666',
+    color: '#999999',
     fontSize: '14px',
-    margin: '0 0 5px 0',
-  },
-  emptySubtext: {
-    color: '#999',
-    fontSize: '12px',
-    margin: 0,
+    padding: '20px 0',
   },
   cartItems: {
-    maxHeight: '200px',
+    maxHeight: '150px',
     overflowY: 'auto',
     marginBottom: '10px',
   },
@@ -1417,31 +1228,30 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px',
+    padding: '8px',
     backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
-    marginBottom: '8px',
-    border: '1px solid #eee',
+    borderRadius: '6px',
+    marginBottom: '6px',
   },
   cartItemInfo: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '2px',
     flex: 1,
   },
   itemName: {
     fontSize: '13px',
     fontWeight: '500',
-    color: '#333',
   },
   itemActions: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
+    marginTop: '4px',
   },
   quantityButton: {
-    width: '24px',
-    height: '24px',
+    width: '22px',
+    height: '22px',
     borderRadius: '4px',
     border: '1px solid #ddd',
     backgroundColor: 'white',
@@ -1468,9 +1278,8 @@ const styles = {
     border: 'none',
     color: '#dc3545',
     cursor: 'pointer',
-    padding: '4px 8px',
+    padding: '4px',
     borderRadius: '4px',
-    transition: 'background-color 0.2s',
   },
   cartTotal: {
     display: 'flex',
@@ -1479,30 +1288,35 @@ const styles = {
     paddingTop: '10px',
     borderTop: '1px solid #e8e8e8',
     marginTop: '10px',
+    fontSize: '14px',
+    fontWeight: '500',
   },
-  totalValue: {
-    fontSize: '18px',
-    fontWeight: 'bold',
+  comissaoInfo: {
+    backgroundColor: '#f0f9ff',
+    padding: '10px',
+    borderRadius: '6px',
+    marginTop: '10px',
+    border: '1px solid #b3e0ff',
+  },
+  comissaoItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontSize: '13px',
+  },
+  comissaoValor: {
     color: '#28a745',
+    fontWeight: 'bold',
   },
-  
-  // Produtos
   productsSection: {
     maxHeight: '300px',
     overflowY: 'auto',
-  },
-  sectionHeader: {
-    marginBottom: '10px',
   },
   productsTitle: {
     fontSize: '14px',
     fontWeight: '600',
     color: '#666666',
-    margin: '0 0 5px 0',
-  },
-  stockInfo: {
-    color: '#999',
-    fontSize: '11px',
+    margin: '0 0 10px 0',
   },
   productsList: {
     display: 'flex',
@@ -1511,48 +1325,31 @@ const styles = {
   },
   productCard: {
     backgroundColor: '#f8f9fa',
-    padding: '12px',
-    borderRadius: '8px',
+    padding: '10px',
+    borderRadius: '6px',
     border: '1px solid #e8e8e8',
   },
-  productHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '6px',
+  productInfo: {
+    marginBottom: '8px',
   },
   productName: {
     fontSize: '13px',
     display: 'block',
-    flex: 1,
-  },
-  productBadges: {
-    marginLeft: '8px',
-  },
-  lowStockBadge: {
-    fontSize: '9px',
-    color: '#ffc107',
-    backgroundColor: '#fff3cd',
-    padding: '2px 6px',
-    borderRadius: '10px',
+    marginBottom: '4px',
   },
   productDetails: {
     fontSize: '11px',
     color: '#666666',
-    marginBottom: '8px',
+    marginBottom: '4px',
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
-  },
-  productFooter: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   productPrice: {
     fontSize: '14px',
     fontWeight: 'bold',
     color: '#2c5aa0',
+    marginTop: '4px',
   },
   addProductBtn: {
     backgroundColor: '#2c5aa0',
@@ -1565,17 +1362,15 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
+    width: '100%',
+    justifyContent: 'center',
     transition: 'opacity 0.2s',
   },
-  
-  // Divisor
   divider: {
     height: '1px',
     backgroundColor: '#e8e8e8',
     margin: '5px 0',
   },
-  
-  // Ações
   actionsSection: {
     display: 'flex',
     flexDirection: 'column',
@@ -1626,6 +1421,18 @@ const styles = {
     color: '#666',
     marginTop: '5px',
   },
+  paymentLink: {
+    display: 'inline-block',
+    marginTop: '10px',
+    padding: '10px 20px',
+    backgroundColor: '#2c5aa0',
+    color: 'white',
+    textDecoration: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '600',
+    transition: 'background-color 0.2s',
+  },
   continueButton: {
     backgroundColor: '#2c5aa0',
     color: '#ffffff',
@@ -1657,12 +1464,23 @@ const styles = {
     cursor: 'pointer',
     width: '100%',
   },
-  
-  // Ações Secundárias
   secondaryActions: {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
+  },
+  whatsappButton: {
+    backgroundColor: '#25D366',
+    color: '#ffffff',
+    border: 'none',
+    padding: '12px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
   },
   cancelButton: {
     backgroundColor: '#6c757d',
@@ -1675,14 +1493,21 @@ const styles = {
   },
 };
 
-// Adicionar animação para o ponto de gravação
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+// Adicionar animação de piscar
+if (typeof document !== 'undefined') {
+  const styleSheet = document.styleSheets[0];
+  if (styleSheet) {
+    try {
+      styleSheet.insertRule(`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `, styleSheet.cssRules.length);
+    } catch (e) {
+      // Ignora se já existir
+    }
   }
-`, styleSheet.cssRules.length);
+}
 
 export default ChatPanel;

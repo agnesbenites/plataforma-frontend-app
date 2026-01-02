@@ -1,8 +1,9 @@
 // app-frontend/src/pages/ConsultorDashboard/components/TrainingPanel.jsx
-import React, { useState, useEffect } from 'react';
-import { FaGraduationCap, FaCheckCircle, FaLock, FaPlay, FaFileAlt, FaVideo, FaExclamationTriangle, FaClock, FaStore, FaShieldAlt } from 'react-icons/fa';
 
-const API_URL = 'https://plataforma-consultoria-mvp.onrender.com';
+import React, { useState, useEffect } from 'react';
+import { FaCheckCircle, FaLock, FaFileAlt, FaClock, FaStore, FaShieldAlt, FaExclamationTriangle } from 'react-icons/fa';
+import MarkdownViewer from '../../../components/MarkdownViewer';
+
 const CONSULTOR_PRIMARY = "#2c5aa0";
 const CONSULTOR_LIGHT_BG = "#eaf2ff";
 
@@ -11,7 +12,9 @@ const TrainingPanel = ({ consultorId }) => {
   const [treinamentosLojistas, setTreinamentosLojistas] = useState([]);
   const [treinamentosConcluidos, setTreinamentosConcluidos] = useState([]);
   const [treinamentoSelecionado, setTreinamentoSelecionado] = useState(null);
+  const [conteudoMD, setConteudoMD] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingContent, setLoadingContent] = useState(false);
   const [progressoGeral, setProgressoGeral] = useState(0);
 
   useEffect(() => {
@@ -21,241 +24,44 @@ const TrainingPanel = ({ consultorId }) => {
   const carregarTreinamentos = async () => {
     setLoading(true);
     try {
-      // Buscar treinamentos da API
-      const response = await fetch(`${API_URL}/api/consultores/${consultorId}/treinamentos`);
+      // Carregar index.json
+      const response = await fetch('/docs/index.json');
+      
+      if (!response.ok) {
+        throw new Error('Erro ao carregar index.json');
+      }
+
       const data = await response.json();
       
-      // Separar por origem e ordenar por data (mais recentes primeiro)
-      const plataforma = data.treinamentos
-        .filter(t => t.origem === 'plataforma')
-        .sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
-      
-      const lojistas = data.treinamentos
-        .filter(t => t.origem === 'lojista')
-        .sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+      // Separar por categoria
+      const plataforma = data.treinamentos.filter(t => t.categoria === 'plataforma');
+      const lojistas = data.treinamentos.filter(t => t.categoria === 'lojista');
       
       setTreinamentosPlataforma(plataforma);
       setTreinamentosLojistas(lojistas);
       
-      // Buscar treinamentos já concluídos pelo consultor
-      const progressoResponse = await fetch(`${API_URL}/api/consultores/${consultorId}/treinamentos/progresso`);
-      const progressoData = await progressoResponse.json();
-      setTreinamentosConcluidos(progressoData.concluidos || []);
+      // Carregar progresso do consultor (mock por enquanto)
+      // TODO: Buscar do backend
+      const concluidos = JSON.parse(localStorage.getItem(`treinamentos_${consultorId}`) || '[]');
+      setTreinamentosConcluidos(concluidos);
       
-      calcularProgresso();
-      setLoading(false);
+      calcularProgresso(plataforma, concluidos);
+      
     } catch (error) {
       console.error('Erro ao carregar treinamentos:', error);
-      // Fallback para mock em caso de erro
-      setTreinamentosPlataforma(mockTreinamentosPlataforma);
-      setTreinamentosLojistas(mockTreinamentosLojistas);
-      setTreinamentosConcluidos(['PLAT-001', 'PLAT-002', 'LOJ-001']);
-      calcularProgresso();
+      alert('Erro ao carregar treinamentos. Verifique se os arquivos estão em /public/docs/');
+    } finally {
       setLoading(false);
     }
   };
 
-  const mockTreinamentosPlataforma = [
-    {
-      id: 'PLAT-001',
-      titulo: 'Conduta e Comunicação na Plataforma',
-      descricao: 'O que você pode ou não perguntar e falar nas chamadas, mensagens de áudio e texto',
-      tipo: 'video',
-      duracao: '15 min',
-      obrigatorio: true,
-      dataPublicacao: '2024-11-15',
-      visualizado: true,
-      conteudo: {
-        topicos: [
-          'Perguntas permitidas e proibidas',
-          'Linguagem apropriada e profissional',
-          'Limites de privacidade do cliente',
-          'Como lidar com situações delicadas',
-          'Política de dados pessoais (LGPD)',
-        ],
-        pontosPrincipais: [
-          '❌ NUNCA pergunte: CPF, número do cartão, senhas bancárias',
-          '❌ NUNCA fale sobre: política, religião, questões pessoais íntimas',
-          '✅ SEMPRE mantenha: profissionalismo, respeito, foco no produto',
-          '✅ SEMPRE ofereça: informações técnicas, comparações, suporte na escolha',
-        ]
-      }
-    },
-    {
-      id: 'PLAT-002',
-      titulo: 'Pesquisa Eficiente de Produtos',
-      descricao: 'Como fazer pesquisa de produtos de maneira eficiente e assertiva',
-      tipo: 'documento',
-      duracao: '10 min',
-      obrigatorio: true,
-      dataPublicacao: '2024-11-20',
-      visualizado: true,
-      conteudo: {
-        topicos: [
-          'Uso de filtros avançados',
-          'Palavras-chave eficientes',
-          'Comparação de especificações',
-          'Verificação de estoque em tempo real',
-          'Identificação de melhores ofertas',
-        ],
-        pontosPrincipais: [
-          '🔍 Use filtros por categoria, faixa de preço e marca',
-          '📊 Compare pelo menos 3 produtos similares',
-          '✅ Sempre verifique disponibilidade antes de recomendar',
-          '💡 Destaque diferenciais técnicos relevantes ao cliente',
-        ]
-      }
-    },
-    {
-      id: 'PLAT-003',
-      titulo: 'Boas Práticas na Plataforma',
-      descricao: 'Diretrizes para atuação profissional e ética',
-      tipo: 'video',
-      duracao: '20 min',
-      obrigatorio: true,
-      dataPublicacao: '2024-11-25',
-      visualizado: false,
-      conteudo: {
-        topicos: [
-          'Pontualidade e disponibilidade',
-          'Qualidade no atendimento',
-          'Gestão de múltiplas chamadas',
-          'Resolução de conflitos',
-          'Ética profissional',
-        ],
-        pontosPrincipais: [
-          '📱 Mantenha seu status atualizado',
-          '💬 Responda mensagens em até 2 minutos',
-          '🏆 Finalize vendas com eficiência',
-          '⭐ Busque avaliações positivas',
-        ]
-      }
-    },
-    {
-      id: 'PLAT-004',
-      titulo: 'Compliance e Gravação de Chamadas',
-      descricao: 'Política de monitoramento e privacidade',
-      tipo: 'documento',
-      duracao: '8 min',
-      obrigatorio: true,
-      dataPublicacao: '2024-12-01',
-      visualizado: false,
-      conteudo: {
-        topicos: [
-          'Política de gravação de chamadas',
-          'Monitoramento de mensagens',
-          'Finalidade do compliance',
-          'Seus direitos e deveres',
-          'Consequências de violações',
-        ],
-        pontosPrincipais: [
-          '🎥 A plataforma pode gravar chamadas aleatoriamente SEM AVISO PRÉVIO',
-          '💬 Mensagens podem ser auditadas para fins de compliance',
-          '⚖️ Objetivo: manter integridade e compromisso com usuários',
-          '🚫 Violações graves podem resultar em suspensão ou banimento',
-        ],
-        avisoImportante: 'ATENÇÃO: Todas as interações na plataforma podem ser monitoradas para garantir a qualidade e segurança de todos os usuários. Ao aceitar os termos, você concorda com esta política.'
-      }
-    },
-    {
-      id: 'PLAT-005',
-      titulo: 'Protocolo de Problemas e Reports',
-      descricao: 'Como reportar problemas com lojas e produtos',
-      tipo: 'documento',
-      duracao: '12 min',
-      obrigatorio: true,
-      dataPublicacao: '2024-12-05',
-      visualizado: false,
-      conteudo: {
-        topicos: [
-          'Quando usar o sistema de reports',
-          'Tipos de problemas reportáveis',
-          'Como documentar evidências',
-          'Prazos de resposta',
-          'O que NÃO fazer',
-        ],
-        pontosPrincipais: [
-          '❌ NUNCA acione diretamente as lojas sobre problemas',
-          '✅ SEMPRE use o sistema de reports da plataforma',
-          '📸 Anexe prints e evidências quando possível',
-          '⏳ Aguarde até 30 dias para retorno oficial',
-          '🚫 NÃO tente resolver problemas por fora da plataforma',
-        ],
-        avisoImportante: 'IMPORTANTE: O consultor NÃO pode contatar lojas diretamente. Qualquer problema deve ser reportado através da plataforma para análise adequada.'
-      }
-    },
-  ];
-
-  const mockTreinamentosLojistas = [
-    {
-      id: 'LOJ-001',
-      titulo: 'Lançamento Samsung Galaxy S24 Ultra',
-      descricao: 'Especificações técnicas e diferenciais do novo flagship',
-      loja: 'Eletrônicos Center',
-      segmento: 'Smartphones',
-      tipo: 'video',
-      duracao: '18 min',
-      dataPublicacao: '2024-12-01',
-      visualizado: true,
-      relevante: true,
-      conteudo: {
-        topicos: [
-          'Especificações técnicas completas',
-          'Comparação com modelo anterior',
-          'Diferenciais de câmera e IA',
-          'Preços e condições especiais',
-        ]
-      }
-    },
-    {
-      id: 'LOJ-002',
-      titulo: 'Nova Linha de Geladeiras Brastemp Inverse',
-      descricao: 'Tecnologia inverter e economia de energia',
-      loja: 'Tech Store',
-      segmento: 'Eletrodomésticos',
-      tipo: 'documento',
-      duracao: '12 min',
-      dataPublicacao: '2024-11-28',
-      visualizado: false,
-      relevante: false,
-      conteudo: {
-        topicos: [
-          'Tecnologia inverter',
-          'Economia de energia',
-          'Capacidades disponíveis',
-          'Garantia estendida',
-        ]
-      }
-    },
-    {
-      id: 'LOJ-003',
-      titulo: 'Promoção Black Friday - Eletrônicos',
-      descricao: 'Produtos em destaque e condições especiais',
-      loja: 'Eletrônicos Center',
-      segmento: 'Eletrônicos',
-      tipo: 'documento',
-      duracao: '8 min',
-      dataPublicacao: '2024-11-20',
-      visualizado: false,
-      relevante: true,
-      conteudo: {
-        topicos: [
-          'Produtos com maior desconto',
-          'Condições de pagamento',
-          'Estoque limitado - prioridades',
-          'Comissão diferenciada',
-        ]
-      }
-    },
-  ];
-
-  const calcularProgresso = () => {
-    const totalObrigatorios = mockTreinamentosPlataforma.filter(t => t.obrigatorio).length;
-    const concluidos = mockTreinamentosPlataforma.filter(t => 
-      t.obrigatorio && treinamentosConcluidos.includes(t.id)
+  const calcularProgresso = (treinamentos, concluidos) => {
+    const totalObrigatorios = treinamentos.filter(t => t.obrigatorio).length;
+    const concluidosObrigatorios = treinamentos.filter(t => 
+      t.obrigatorio && concluidos.includes(t.id)
     ).length;
     
-    const progresso = totalObrigatorios > 0 ? (concluidos / totalObrigatorios) * 100 : 0;
+    const progresso = totalObrigatorios > 0 ? (concluidosObrigatorios / totalObrigatorios) * 100 : 0;
     setProgressoGeral(Math.round(progresso));
   };
 
@@ -264,11 +70,9 @@ const TrainingPanel = ({ consultorId }) => {
   };
 
   const isHabilitado = () => {
-    const todosObrigatoriosConcluidos = mockTreinamentosPlataforma
+    return treinamentosPlataforma
       .filter(t => t.obrigatorio)
       .every(t => isConcluido(t.id));
-    
-    return todosObrigatoriosConcluidos;
   };
 
   const isNovo = (dataPublicacao) => {
@@ -278,64 +82,52 @@ const TrainingPanel = ({ consultorId }) => {
     return diferencaDias <= 7;
   };
 
-  const ordenarPorDataDecrescente = (treinamentos) => {
-    return [...treinamentos].sort((a, b) => {
-      return new Date(b.dataPublicacao) - new Date(a.dataPublicacao);
-    });
-  };
-
-  const iniciarTreinamento = (treinamento) => {
-    setTreinamentoSelecionado(treinamento);
+  const iniciarTreinamento = async (treinamento) => {
+    setLoadingContent(true);
     
-    // Marcar como visualizado
-    if (!treinamento.visualizado) {
-      if (treinamento.id.startsWith('PLAT')) {
-        const index = treinamentosPlataforma.findIndex(t => t.id === treinamento.id);
-        if (index !== -1) {
-          const updated = [...treinamentosPlataforma];
-          updated[index].visualizado = true;
-          setTreinamentosPlataforma(updated);
-        }
-      } else {
-        const index = treinamentosLojistas.findIndex(t => t.id === treinamento.id);
-        if (index !== -1) {
-          const updated = [...treinamentosLojistas];
-          updated[index].visualizado = true;
-          setTreinamentosLojistas(updated);
-        }
+    try {
+      // Carregar conteúdo MD
+      const response = await fetch(`/docs/${treinamento.arquivo}`);
+      
+      if (!response.ok) {
+        throw new Error('Erro ao carregar conteúdo');
       }
+
+      const markdown = await response.text();
+      setConteudoMD(markdown);
+      setTreinamentoSelecionado(treinamento);
+      
+    } catch (error) {
+      console.error('Erro ao carregar conteúdo:', error);
+      alert(`Erro ao carregar o treinamento. Verifique se o arquivo existe em /public/docs/${treinamento.arquivo}`);
+    } finally {
+      setLoadingContent(false);
     }
   };
 
-  const concluirTreinamento = async (treinamentoId) => {
-    try {
-      const response = await fetch(`${API_URL}/api/consultores/${consultorId}/treinamentos/${treinamentoId}/concluir`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dataConclusao: new Date().toISOString()
-        })
-      });
+  const concluirTreinamento = (treinamentoId) => {
+    // Adicionar aos concluídos
+    const novoConcluidos = [...treinamentosConcluidos, treinamentoId];
+    setTreinamentosConcluidos(novoConcluidos);
+    
+    // Salvar no localStorage (temporário)
+    localStorage.setItem(`treinamentos_${consultorId}`, JSON.stringify(novoConcluidos));
+    
+    // TODO: Salvar no backend
+    // await fetch(`/api/consultores/${consultorId}/treinamentos/${treinamentoId}/concluir`, {
+    //   method: 'POST'
+    // });
 
-      if (!response.ok) throw new Error('Erro ao marcar como concluído');
-
-      setTreinamentosConcluidos([...treinamentosConcluidos, treinamentoId]);
-      setTreinamentoSelecionado(null);
-      calcularProgresso();
-      alert('✅ Treinamento concluído com sucesso!');
-    } catch (error) {
-      console.error('Erro ao concluir treinamento:', error);
-      setTreinamentosConcluidos([...treinamentosConcluidos, treinamentoId]);
-      setTreinamentoSelecionado(null);
-      calcularProgresso();
-      alert('✅ Treinamento concluído com sucesso!');
-    }
+    setTreinamentoSelecionado(null);
+    setConteudoMD('');
+    calcularProgresso(treinamentosPlataforma, novoConcluidos);
+    
+    alert('✅ Treinamento concluído com sucesso!');
   };
 
   const voltarParaLista = () => {
     setTreinamentoSelecionado(null);
+    setConteudoMD('');
   };
 
   if (loading) {
@@ -360,64 +152,43 @@ const TrainingPanel = ({ consultorId }) => {
             <h2 style={styles.detailTitle}>{treinamentoSelecionado.titulo}</h2>
             <p style={styles.detailSubtitle}>{treinamentoSelecionado.descricao}</p>
             <div style={styles.detailMeta}>
-              {treinamentoSelecionado.tipo === 'video' ? (
-                <span><FaVideo /> Vídeo</span>
-              ) : (
-                <span><FaFileAlt /> Documento</span>
-              )}
+              <span><FaFileAlt /> Documento</span>
               <span><FaClock /> {treinamentoSelecionado.duracao}</span>
-              {treinamentoSelecionado.loja && (
-                <span><FaStore /> {treinamentoSelecionado.loja}</span>
+              {treinamentoSelecionado.obrigatorio && (
+                <span style={styles.obrigatorioTagDetail}>OBRIGATÓRIO</span>
               )}
             </div>
           </div>
         </div>
 
         <div style={styles.detailContent}>
-          {treinamentoSelecionado.tipo === 'video' && (
-            <div style={styles.videoPlayer}>
-              <FaPlay size={60} color="white" />
-              <p style={styles.videoText}>Player de Vídeo</p>
+          {loadingContent ? (
+            <div style={styles.loadingContainer}>
+              <div style={styles.spinner}></div>
+              <p>Carregando conteúdo...</p>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Renderizar Markdown */}
+              <MarkdownViewer content={conteudoMD} />
 
-          <div style={styles.contentSection}>
-            <h3 style={styles.contentTitle}>📘 Conteúdo Programático</h3>
-            <ul style={styles.topicosList}>
-              {treinamentoSelecionado.conteudo.topicos.map((topico, index) => (
-                <li key={index} style={styles.topicoItem}>{topico}</li>
-              ))}
-            </ul>
-          </div>
-
-          {treinamentoSelecionado.conteudo.pontosPrincipais && (
-            <div style={styles.contentSection}>
-              <h3 style={styles.contentTitle}>⭐ Pontos Principais</h3>
-              <div style={styles.pontosList}>
-                {treinamentoSelecionado.conteudo.pontosPrincipais.map((ponto, index) => (
-                  <div key={index} style={styles.pontoItem}>{ponto}</div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {treinamentoSelecionado.conteudo.avisoImportante && (
-            <div style={styles.avisoCard}>
-              <FaExclamationTriangle size={24} color="#dc3545" />
-              <div>
-                <h4 style={styles.avisoTitle}>⚠️ Aviso Importante</h4>
-                <p style={styles.avisoText}>{treinamentoSelecionado.conteudo.avisoImportante}</p>
-              </div>
-            </div>
-          )}
-
-          {!isConcluido(treinamentoSelecionado.id) && (
-            <button
-              onClick={() => concluirTreinamento(treinamentoSelecionado.id)}
-              style={styles.concluirButton}
-            >
-              <FaCheckCircle /> Marcar como Concluído
-            </button>
+              {/* Botão de Conclusão */}
+              {!isConcluido(treinamentoSelecionado.id) && (
+                <button
+                  onClick={() => concluirTreinamento(treinamentoSelecionado.id)}
+                  style={styles.concluirButton}
+                >
+                  <FaCheckCircle /> Marcar como Concluído
+                </button>
+              )}
+              
+              {isConcluido(treinamentoSelecionado.id) && (
+                <div style={styles.jaConcluidoMessage}>
+                  <FaCheckCircle color="#28a745" size={24} />
+                  <span>Você já concluiu este treinamento!</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -427,6 +198,7 @@ const TrainingPanel = ({ consultorId }) => {
   // Visualização em Lista
   return (
     <div style={styles.container}>
+      {/* Header com Status de Habilitação */}
       <div style={styles.header}>
         <div>
           <h2 style={styles.title}>🎓 Treinamentos e Capacitação</h2>
@@ -454,6 +226,7 @@ const TrainingPanel = ({ consultorId }) => {
         </div>
       </div>
 
+      {/* Barra de Progresso */}
       <div style={styles.progressCard}>
         <div style={styles.progressHeader}>
           <span style={styles.progressLabel}>Progresso dos Treinamentos Obrigatórios</span>
@@ -469,7 +242,10 @@ const TrainingPanel = ({ consultorId }) => {
         </div>
       </div>
 
+      {/* Duas Colunas */}
       <div style={styles.columnsContainer}>
+        
+        {/* Coluna 1: Treinamentos da Plataforma */}
         <div style={styles.column}>
           <div style={styles.columnHeader}>
             <FaShieldAlt size={24} color={CONSULTOR_PRIMARY} />
@@ -480,7 +256,7 @@ const TrainingPanel = ({ consultorId }) => {
           </p>
 
           <div style={styles.treinamentosList}>
-            {ordenarPorDataDecrescente(treinamentosPlataforma).map(treinamento => (
+            {treinamentosPlataforma.map(treinamento => (
               <TrainCard
                 key={treinamento.id}
                 treinamento={treinamento}
@@ -492,106 +268,91 @@ const TrainingPanel = ({ consultorId }) => {
           </div>
         </div>
 
+        {/* Coluna 2: Treinamentos dos Lojistas */}
         <div style={styles.column}>
           <div style={styles.columnHeader}>
             <FaStore size={24} color={CONSULTOR_PRIMARY} />
-            <h3 style={styles.columnTitle}>Treinamentos e Informes das Lojas</h3>
+            <h3 style={styles.columnTitle}>Treinamentos das Lojas</h3>
           </div>
           <p style={styles.columnDescription}>
             Conteúdos sobre produtos, promoções e políticas específicas das lojas
           </p>
 
           <div style={styles.treinamentosList}>
-            {ordenarPorDataDecrescente(
-              treinamentosLojistas.filter(t => t.relevante)
-            ).map(treinamento => (
-              <TrainCard
-                key={treinamento.id}
-                treinamento={treinamento}
-                isConcluido={isConcluido(treinamento.id)}
-                isNovo={isNovo(treinamento.dataPublicacao)}
-                onIniciar={() => iniciarTreinamento(treinamento)}
-                isLojista={true}
-              />
-            ))}
+            {treinamentosLojistas.length === 0 ? (
+              <div style={styles.emptyState}>
+                <FaStore size={40} color="#ccc" />
+                <p style={styles.emptyText}>Nenhum treinamento disponível no momento</p>
+              </div>
+            ) : (
+              treinamentosLojistas.map(treinamento => (
+                <TrainCard
+                  key={treinamento.id}
+                  treinamento={treinamento}
+                  isConcluido={isConcluido(treinamento.id)}
+                  isNovo={isNovo(treinamento.dataPublicacao)}
+                  onIniciar={() => iniciarTreinamento(treinamento)}
+                  isLojista={true}
+                />
+              ))
+            )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-          {treinamentosLojistas.filter(t => t.relevante).length === 0 && (
-            <div style={styles.emptyState}>
-              <FaStore size={40} color="#ccc" />
-              <p style={styles.emptyText}>Nenhum treinamento disponível no momento</p>
-            </div>
+// Componente de Card de Treinamento
+const TrainCard = ({ treinamento, isConcluido, isNovo, onIniciar, isLojista = false }) => (
+  <div style={{
+    ...styles.trainCard,
+    borderLeft: `4px solid ${isConcluido ? '#28a745' : treinamento.obrigatorio ? '#dc3545' : '#ffc107'}`,
+    opacity: isConcluido ? 0.8 : 1,
+  }}>
+    <div style={styles.trainCardHeader}>
+      <div style={styles.trainCardTitle}>
+        <div style={styles.badgesContainer}>
+          {isConcluido && (
+            <span style={styles.concluidoBadge}>
+              <FaCheckCircle /> CONCLUÍDO
+            </span>
+          )}
+          {!isConcluido && isNovo && (
+            <span style={styles.novoBadge}>🆕 NOVO</span>
+          )}
+          {!isConcluido && !isNovo && (
+            <span style={styles.pendenteBadge}>📚 PENDENTE</span>
+          )}
+          {treinamento.obrigatorio && !isConcluido && (
+            <span style={styles.obrigatorioTag}>OBRIGATÓRIO</span>
           )}
         </div>
+        <h4 style={styles.trainTitle}>{treinamento.titulo}</h4>
       </div>
     </div>
-  );
-};
 
-const TrainCard = ({ treinamento, isConcluido, isNovo, onIniciar, isLojista = false }) => {
-  return (
-    <div style={{
-      ...styles.trainCard,
-      borderLeft: `4px solid ${isConcluido ? '#28a745' : treinamento.obrigatorio ? '#dc3545' : '#ffc107'}`,
-      opacity: isConcluido ? 0.8 : 1,
-    }}>
-      <div style={styles.trainCardHeader}>
-        <div style={styles.trainCardTitle}>
-          <div style={styles.badgesContainer}>
-            {isConcluido && (
-              <span style={styles.concluidoBadge}>
-                <FaCheckCircle /> CONCLUÍDO
-              </span>
-            )}
-            {!isConcluido && !treinamento.visualizado && isNovo && (
-              <span style={styles.novoBadge}>🆕 NOVO</span>
-            )}
-            {!isConcluido && !treinamento.visualizado && !isNovo && (
-              <span style={styles.naoVistoBadge}>👁️ NÃO VISUALIZADO</span>
-            )}
-            {!isConcluido && treinamento.visualizado && (
-              <span style={styles.naoConcluidoBadge}>📚 PENDENTE</span>
-            )}
-            {treinamento.obrigatorio && !isConcluido && (
-              <span style={styles.obrigatorioTag}>OBRIGATÓRIO</span>
-            )}
-          </div>
-          <h4 style={styles.trainTitle}>{treinamento.titulo}</h4>
-        </div>
-        {isLojista && (
-          <span style={styles.segmentoBadge}>{treinamento.segmento}</span>
-        )}
-      </div>
+    <p style={styles.trainDescription}>{treinamento.descricao}</p>
 
-      <p style={styles.trainDescription}>{treinamento.descricao}</p>
-
-      <div style={styles.trainMeta}>
-        {treinamento.tipo === 'video' ? (
-          <span style={styles.metaItem}><FaVideo /> Vídeo</span>
-        ) : (
-          <span style={styles.metaItem}><FaFileAlt /> Documento</span>
-        )}
-        <span style={styles.metaItem}><FaClock /> {treinamento.duracao}</span>
-        {isLojista && (
-          <span style={styles.metaItem}><FaStore /> {treinamento.loja}</span>
-        )}
-        <span style={styles.metaItem}>
-          📅 {new Date(treinamento.dataPublicacao).toLocaleDateString('pt-BR')}
-        </span>
-      </div>
-
-      <button
-        onClick={onIniciar}
-        style={{
-          ...styles.iniciarButton,
-          backgroundColor: isConcluido ? '#6c757d' : CONSULTOR_PRIMARY,
-        }}
-      >
-        {isConcluido ? 'Revisar Conteúdo' : treinamento.visualizado ? 'Continuar e Concluir' : 'Iniciar Treinamento'}
-      </button>
+    <div style={styles.trainMeta}>
+      <span style={styles.metaItem}><FaFileAlt /> Documento</span>
+      <span style={styles.metaItem}><FaClock /> {treinamento.duracao}</span>
+      <span style={styles.metaItem}>
+        📅 {new Date(treinamento.dataPublicacao).toLocaleDateString('pt-BR')}
+      </span>
     </div>
-  );
-};
+
+    <button
+      onClick={onIniciar}
+      style={{
+        ...styles.iniciarButton,
+        backgroundColor: isConcluido ? '#6c757d' : CONSULTOR_PRIMARY,
+      }}
+    >
+      {isConcluido ? 'Revisar Conteúdo' : 'Iniciar Treinamento'}
+    </button>
+  </div>
+);
 
 const styles = {
   container: {
@@ -770,15 +531,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 'bold',
   },
-  naoVistoBadge: {
-    backgroundColor: '#ffc107',
-    color: '#333',
-    padding: '4px 10px',
-    borderRadius: '6px',
-    fontSize: '11px',
-    fontWeight: 'bold',
-  },
-  naoConcluidoBadge: {
+  pendenteBadge: {
     backgroundColor: '#6c757d',
     color: 'white',
     padding: '4px 10px',
@@ -794,13 +547,13 @@ const styles = {
     fontSize: '11px',
     fontWeight: 'bold',
   },
-  segmentoBadge: {
-    backgroundColor: CONSULTOR_LIGHT_BG,
-    color: CONSULTOR_PRIMARY,
-    padding: '4px 10px',
+  obrigatorioTagDetail: {
+    backgroundColor: '#dc3545',
+    color: 'white',
+    padding: '6px 12px',
     borderRadius: '6px',
     fontSize: '12px',
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   trainTitle: {
     fontSize: '1rem',
@@ -847,6 +600,7 @@ const styles = {
     color: '#999',
     marginTop: '15px',
   },
+  // Estilos para visualização detalhada
   detailHeader: {
     backgroundColor: 'white',
     borderRadius: '12px',
@@ -891,78 +645,6 @@ const styles = {
     padding: '30px',
     boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
   },
-  videoPlayer: {
-    backgroundColor: '#000',
-    borderRadius: '12px',
-    height: '400px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '30px',
-  },
-  videoText: {
-    color: 'white',
-    fontSize: '18px',
-    marginTop: '15px',
-  },
-  contentSection: {
-    marginBottom: '30px',
-  },
-  contentTitle: {
-    fontSize: '1.3rem',
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: '15px',
-  },
-  topicosList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-  },
-  topicoItem: {
-    fontSize: '15px',
-    color: '#666',
-    padding: '12px 0',
-    borderBottom: '1px solid #e9ecef',
-    paddingLeft: '25px',
-    position: 'relative',
-  },
-  pontosList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  },
-  pontoItem: {
-    backgroundColor: CONSULTOR_LIGHT_BG,
-    padding: '15px',
-    borderRadius: '8px',
-    fontSize: '15px',
-    color: '#333',
-    lineHeight: '1.6',
-  },
-  avisoCard: {
-    backgroundColor: '#fff5f5',
-    border: '2px solid #dc3545',
-    borderRadius: '12px',
-    padding: '25px',
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '20px',
-    marginBottom: '30px',
-  },
-  avisoTitle: {
-    fontSize: '1.1rem',
-    fontWeight: 'bold',
-    color: '#dc3545',
-    margin: '0 0 10px 0',
-  },
-  avisoText: {
-    fontSize: '15px',
-    color: '#666',
-    margin: 0,
-    lineHeight: '1.6',
-  },
   concluirButton: {
     backgroundColor: '#28a745',
     color: 'white',
@@ -977,6 +659,21 @@ const styles = {
     justifyContent: 'center',
     gap: '10px',
     width: '100%',
+    marginTop: '30px',
+  },
+  jaConcluidoMessage: {
+    backgroundColor: '#d4edda',
+    color: '#155724',
+    border: '2px solid #c3e6cb',
+    borderRadius: '8px',
+    padding: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '15px',
+    fontSize: '16px',
+    fontWeight: '600',
+    marginTop: '30px',
   },
 };
 

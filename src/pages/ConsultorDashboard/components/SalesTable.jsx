@@ -1,215 +1,269 @@
-// web-consultor/src/components/AnalyticsPanel.jsx
+// src/pages/ConsultorDashboard/components/SalesTable.jsx
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../supabaseClient';
 
-import React, { useState } from 'react';
+const CONSULTOR_PRIMARY = "#2c5aa0";
+const CONSULTOR_LIGHT_BG = "#eaf2ff";
 
-// Dados mockados para simular o que vira do Supabase
-const mockAnalytics = {
-    avgTime: '12 min',          // 1. Tempo medio de atendimento
-    dailyCount: 15,             // 2. Quantidade de atendimento diario
-    commissionValue: 'R$ 350,00',// 3. Valor de comissao
-    closedSales: 8,             // 7. Quantidade de compras fechadas
-    qrCodesSent: 25,            // 6. Quantidade de qr codes enviados
-    indicatedConsultants: 3,    // 5. Pessoas indicadas
-    rating: 4.8,                // 11. Avaliacao
-    associatedStores: ['Magazine X', 'Loja Y'], // 12. Lojas
-    associatedSegments: ['Eletr´nicos', 'Decoracao'] // 13. Segmentos
-};
+const SalesTable = () => {
+  const [vendas, setVendas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroStatus, setFiltroStatus] = useState('todas'); // todas, finalizadas, pendentes
+  const consultorId = localStorage.getItem('userId');
 
-const MetricCard = ({ title, value, detail }) => (
-    <div style={analyticsStyles.card}>
-        <h4 style={analyticsStyles.cardTitle}>{title}</h4>
-        <p style={analyticsStyles.cardValue}>{value}</p>
-        {detail && <small style={analyticsStyles.cardDetail}>{detail}</small>}
-    </div>
-);
+  useEffect(() => {
+    carregarVendas();
+  }, []);
 
-const AnalyticsPanel = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [productStock, setProductStock] = useState(null);
+  const carregarVendas = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('pedidos')
+        .select(`
+          id,
+          created_at,
+          status,
+          valor_total,
+          valor_comissao,
+          loja:lojas (
+            nome_fantasia,
+            cidade,
+            estado
+          )
+        `)
+        .eq('consultor_id', consultorId)
+        .order('created_at', { ascending: false });
 
-    // 9. Pesquisa de Produtos e Estoque (Simulacao)
-    const handleSearch = () => {
-        // Logica futura: axios.get('/api/estoque?sku=' + searchTerm)
-        if (searchTerm.toLowerCase().includes('sku123')) {
-            setProductStock('Produto X: 50 unidades em Estoque na Loja Y.');
-        } else {
-            setProductStock('Produto nao encontrado ou estoque baixo.');
-        }
-    };
-
-    // 10. Geracao de QR Code (Simulacao)
-    const handleGenerateQR = () => {
-        alert('Funcionalidade de Geracao de QR Code Final sera implementada no Backend.');
-    };
-
-    // 4. Campo de Indicacao (Simulacao)
-    const handleNominate = () => {
-        alert('Formulario de Indicacao de Consultor sera implementado.');
-    };
-
-    return (
-        <div style={analyticsStyles.container}>
-            
-            {/* 1. M‰TRICAS DE DESEMPENHO (Itens 1, 2, 3, 5, 6, 7, 11) */}
-            <h2>Visao Geral e Desempenho</h2>
-            <div style={analyticsStyles.metricsGrid}>
-                <MetricCard title="Atendimento Diario" value={mockAnalytics.dailyCount} />
-                <MetricCard title="Vendas Fechadas" value={mockAnalytics.closedSales} />
-                <MetricCard title="Comissao (Mas)" value={mockAnalytics.commissionValue} />
-                <MetricCard title="Avaliacao Media" value={mockAnalytics.rating} detail="(Item 11)" />
-                <MetricCard title="Indicacoes Ativas" value={mockAnalytics.indicatedConsultants} detail="(Item 5)" />
-            </div>
-
-            {/* 2. FERRAMENTAS ESSENCIAIS (Itens 9, 10) */}
-            <h3>Ferramentas de Atendimento</h3>
-            
-            <div style={analyticsStyles.toolContainer}>
-                {/* 9. Pesquisa de Estoque */}
-                <input 
-                    type="text" 
-                    placeholder="Pesquisar Produto/Estoque (SKU, Nome)" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={analyticsStyles.searchInput} 
-                />
-                <button onClick={handleSearch} style={{...analyticsStyles.toolButton, backgroundColor: '#364fab'}}>
-                    Buscar Estoque
-                </button>
-            </div>
-            {productStock && <p style={analyticsStyles.stockResult}>{productStock}</p>}
-
-            {/* 10. Gerar QR Code Final */}
-            <button onClick={handleGenerateQR} style={{...analyticsStyles.toolButtonLarge, backgroundColor: '#28a745'}}>
-                Gerar QR Code Final do Carrinho (Item 10)
-            </button>
-
-
-            {/* 3. INFORMACOES PESSOAIS E INDICACAO (Itens 4, 12, 13) */}
-            <h3 style={{ marginTop: '30px' }}>Minha Afiliacao e Indicacoes</h3>
-
-            <div style={analyticsStyles.infoGrid}>
-                <div>
-                    <h4>Lojas Associadas (Item 12)</h4>
-                    <p>{mockAnalytics.associatedStores.join(', ')}</p>
-                </div>
-                <div>
-                    <h4>Segmentos (Item 13)</h4>
-                    <p>{mockAnalytics.associatedSegments.join(', ')}</p>
-                </div>
-                <div>
-                    {/* 4. Campo para Indicar Pessoas */}
-                    <h4>Indicar Novo Consultor (Item 4)</h4>
-                    <button onClick={handleNominate} style={analyticsStyles.nominateButton}>
-                        Indicar Nova Pessoa
-                    </button>
-                </div>
-            </div>
-
-            {/* 4. HIST“RICO DE COMPRAS (Item 8) */}
-            <h3 style={{ marginTop: '30px' }}>Historico de Compras Finalizadas (Item 8)</h3>
-            <p>O historico detalhado (Pedido, Valor, Loja, Data) sera exibido aqui.</p>
-        </div>
-    );
-};
-
-const analyticsStyles = {
-    container: {
-        padding: '30px',
-        backgroundColor: '#f8f9fa',
-        overflowY: 'auto',
-        fontFamily: 'Arial, sans-serif',
-        minHeight: '100%',
-    },
-    metricsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '20px',
-        marginBottom: '40px',
-    },
-    card: {
-        backgroundColor: 'white',
-        padding: '20px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
-        textAlign: 'center',
-    },
-    cardTitle: {
-        fontSize: '14px',
-        color: '#6c757d',
-        margin: '0 0 5px 0',
-    },
-    cardValue: {
-        fontSize: '24px',
-        fontWeight: 'bold',
-        color: '#364fab',
-        margin: 0,
-    },
-    cardDetail: {
-        fontSize: '10px',
-        color: '#888',
-    },
-    // Ferramentas
-    toolContainer: {
-        display: 'flex',
-        alignItems: 'center',
-        marginBottom: '15px',
-    },
-    searchInput: {
-        padding: '10px',
-        borderRadius: '5px',
-        border: '1px solid #ccc',
-        flexGrow: 1,
-        marginRight: '10px',
-    },
-    stockResult: {
-        backgroundColor: '#fff3cd',
-        color: '#856404',
-        padding: '10px',
-        borderRadius: '5px',
-        marginBottom: '20px',
-        border: '1px solid #ffeeba',
-    },
-    toolButton: {
-        padding: '10px 15px',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px',
-    },
-    toolButtonLarge: {
-        width: '100%',
-        padding: '12px',
-        backgroundColor: '#28a745',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '18px',
-        marginBottom: '20px',
-    },
-    infoGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '20px',
-        padding: '20px 0',
-        borderTop: '1px solid #ccc',
-        borderBottom: '1px solid #ccc',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-    },
-    nominateButton: {
-        padding: '10px 15px',
-        backgroundColor: '#ffc107',
-        color: '#333',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px',
-        fontWeight: 'bold',
-        marginTop: '10px',
+      if (error) throw error;
+      
+      setVendas(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar vendas:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const vendasFiltradas = vendas.filter(venda => {
+    if (filtroStatus === 'todas') return true;
+    if (filtroStatus === 'finalizadas') return venda.status === 'Retirado pelo Cliente';
+    if (filtroStatus === 'pendentes') return venda.status !== 'Retirado pelo Cliente' && venda.status !== 'Pago/Cancelado';
+    return true;
+  });
+
+  const calcularEstatisticas = () => {
+    const totalVendas = vendasFiltradas.length;
+    const totalComissao = vendasFiltradas.reduce((acc, v) => acc + (v.valor_comissao || 0), 0);
+    const ticketMedio = totalVendas > 0 ? vendasFiltradas.reduce((acc, v) => acc + v.valor_total, 0) / totalVendas : 0;
+
+    return { totalVendas, totalComissao, ticketMedio };
+  };
+
+  const { totalVendas, totalComissao, ticketMedio } = calcularEstatisticas();
+
+  const formatarStatus = (status) => {
+    const statusMap = {
+      'QR Code Gerado!': { emoji: '🔲', cor: '#fbbf24' },
+      'Aguardando Separação': { emoji: '📦', cor: '#60a5fa' },
+      'Pronto para pagamento': { emoji: '💳', cor: '#34d399' },
+      'Pago/Cancelado': { emoji: '✅', cor: '#10b981' },
+      'Retirado pelo Cliente': { emoji: '🎉', cor: '#059669' }
+    };
+
+    const config = statusMap[status] || { emoji: '❓', cor: '#6b7280' };
+    return (
+      <span style={{
+        padding: '4px 12px',
+        borderRadius: '12px',
+        backgroundColor: config.cor + '20',
+        color: config.cor,
+        fontSize: '0.85rem',
+        fontWeight: '600',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px'
+      }}>
+        {config.emoji} {status}
+      </span>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Carregando vendas...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '2rem', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: CONSULTOR_PRIMARY, marginBottom: '0.5rem' }}>
+            📊 Minhas Vendas
+          </h1>
+          <p style={{ color: '#64748b' }}>
+            Histórico completo de todas as suas vendas realizadas
+          </p>
+        </div>
+
+        {/* Cards de Estatísticas */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          gap: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '2px solid ' + CONSULTOR_PRIMARY
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              Total de Vendas
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: CONSULTOR_PRIMARY }}>
+              {totalVendas}
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              Comissão Total
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
+              R$ {totalComissao.toFixed(2)}
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              Ticket Médio
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f59e0b' }}>
+              R$ {ticketMedio.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div style={{ 
+          backgroundColor: 'white',
+          padding: '1rem',
+          borderRadius: '12px',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          {['todas', 'finalizadas', 'pendentes'].map(filtro => (
+            <button
+              key={filtro}
+              onClick={() => setFiltroStatus(filtro)}
+              style={{
+                padding: '0.5rem 1.5rem',
+                borderRadius: '8px',
+                border: filtroStatus === filtro ? `2px solid ${CONSULTOR_PRIMARY}` : '2px solid #e2e8f0',
+                backgroundColor: filtroStatus === filtro ? CONSULTOR_LIGHT_BG : 'white',
+                color: filtroStatus === filtro ? CONSULTOR_PRIMARY : '#64748b',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {filtro.charAt(0).toUpperCase() + filtro.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Tabela */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: CONSULTOR_LIGHT_BG, borderBottom: `2px solid ${CONSULTOR_PRIMARY}` }}>
+                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: CONSULTOR_PRIMARY }}>ID</th>
+                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: CONSULTOR_PRIMARY }}>Data</th>
+                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: CONSULTOR_PRIMARY }}>Loja</th>
+                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: CONSULTOR_PRIMARY }}>Status</th>
+                  <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: CONSULTOR_PRIMARY }}>Valor</th>
+                  <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: CONSULTOR_PRIMARY }}>Comissão</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vendasFiltradas.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                      Nenhuma venda encontrada para este filtro
+                    </td>
+                  </tr>
+                ) : (
+                  vendasFiltradas.map((venda) => (
+                    <tr 
+                      key={venda.id}
+                      style={{ 
+                        borderBottom: '1px solid #e2e8f0',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                    >
+                      <td style={{ padding: '1rem', color: '#475569', fontWeight: '500' }}>
+                        #{String(venda.id).padStart(4, '0')}
+                      </td>
+                      <td style={{ padding: '1rem', color: '#475569' }}>
+                        {new Date(venda.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <div style={{ fontWeight: '500', color: '#1e293b' }}>
+                          {venda.loja?.nome_fantasia || 'N/A'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          {venda.loja?.cidade}/{venda.loja?.estado}
+                        </div>
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        {formatarStatus(venda.status)}
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>
+                        R$ {venda.valor_total.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>
+                        R$ {(venda.valor_comissao || 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
 };
 
-export default AnalyticsPanel;
+export default SalesTable;

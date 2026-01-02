@@ -1,6 +1,7 @@
 // app-frontend/src/pages/ConsultorDashboard/components/StoresPanel.jsx
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../supabaseClient';
 
 // Cores do Consultor
 const CONSULTOR_PRIMARY = "#2c5aa0";
@@ -13,78 +14,237 @@ const StoresPanel = ({ consultorId }) => {
   const [filtro, setFiltro] = useState('todas');
   const [busca, setBusca] = useState('');
   const [setorSelecionado, setSetorSelecionado] = useState('todos');
+  const [consultorSegmentos, setConsultorSegmentos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    buscarLojas();
-    buscarMinhasCandidaturas();
-    buscarLojasAprovadas();
+    carregarDados();
   }, []);
 
-  const buscarLojas = async () => {
-    const mockLojas = [
-      {
-        id: 1,
-        nome: 'Eletrônicos Center',
-        cidade: 'São Paulo',
-        estado: 'SP',
-        setores: ['Smartphones', 'Notebooks', 'TVs'],
-        comissaoMedia: 8,
-        comissaoMin: 5,
-        comissaoMax: 12,
-        avaliacaoLoja: 4.5,
-        aceitaCandidaturas: true,
-      },
-      {
-        id: 2,
-        nome: 'Tech Store',
-        cidade: 'Rio de Janeiro',
-        estado: 'RJ',
-        setores: ['Informática', 'Games', 'Áudio'],
-        comissaoMedia: 10,
-        comissaoMin: 8,
-        comissaoMax: 15,
-        avaliacaoLoja: 4.8,
-        aceitaCandidaturas: true,
-      },
-      {
-        id: 3,
-        nome: 'Casa & Decoração',
-        cidade: 'Belo Horizonte',
-        estado: 'MG',
-        setores: ['Móveis', 'Decoração', 'Iluminação'],
-        comissaoMedia: 12,
-        comissaoMin: 10,
-        comissaoMax: 18,
-        avaliacaoLoja: 4.2,
-        aceitaCandidaturas: false, // Não aceita candidaturas no momento
-      },
-    ];
-    setLojas(mockLojas);
+  const carregarDados = async () => {
+    setLoading(true);
+    await Promise.all([
+      buscarConsultorSegmentos(),
+      buscarMinhasCandidaturas(),
+      buscarLojasAprovadas(),
+    ]);
+    setLoading(false);
+  };
+
+  // Buscar segmentos do consultor
+  const buscarConsultorSegmentos = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { data: consultor, error } = await supabase
+        .from('consultores')
+        .select('segmentos_atendidos')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      const segmentos = consultor?.segmentos_atendidos || [];
+      setConsultorSegmentos(segmentos);
+      
+      // Buscar lojas após ter os segmentos
+      await buscarLojas(segmentos);
+      
+    } catch (error) {
+      console.error('Erro ao buscar segmentos do consultor:', error);
+      setConsultorSegmentos([]);
+      await buscarLojas([]);
+    }
+  };
+
+  const buscarLojas = async (segmentosConsultor) => {
+    try {
+      // Buscar todas as lojas ativas
+      const { data: lojasData, error } = await supabase
+        .from('lojas')
+        .select(`
+          id,
+          nome_fantasia,
+          cidade,
+          estado,
+          segmento,
+          avaliacao_media,
+          aceita_consultores
+        `)
+        .eq('ativo', true)
+        .order('nome_fantasia');
+
+      if (error) throw error;
+
+      // Buscar comissões médias de cada loja
+      const lojasComDetalhes = await Promise.all(
+        (lojasData || []).map(async (loja) => {
+          // Buscar comissão média da loja
+          const { data: produtos } = await supabase
+            .from('produtos')
+            .select('commission_rate')
+            .eq('loja_id', loja.id);
+
+          const comissoes = produtos?.map(p => p.commission_rate || 0) || [];
+          const comissaoMedia = comissoes.length > 0
+            ? comissoes.reduce((a, b) => a + b, 0) / comissoes.length
+            : 5;
+          const comissaoMin = comissoes.length > 0 ? Math.min(...comissoes) : 5;
+          const comissaoMax = comissoes.length > 0 ? Math.max(...comissoes) : 12;
+
+          // Verificar se a loja pertence aos segmentos do consultor
+          const pertenceAoSegmento = segmentosConsultor.includes(loja.segmento);
+
+          return {
+            id: loja.id,
+            nome: loja.nome_fantasia,
+            cidade: loja.cidade,
+            estado: loja.estado,
+            setores: [loja.segmento], // Array para compatibilidade
+            segmento: loja.segmento,
+            comissaoMedia: Math.round(comissaoMedia),
+            comissaoMin: Math.round(comissaoMin),
+            comissaoMax: Math.round(comissaoMax),
+            avaliacaoLoja: loja.avaliacao_media || 4.5,
+            aceitaCandidaturas: loja.aceita_consultores || true,
+            pertenceAoSegmento, // ← NOVO: Flag para destacar
+            prioridade: pertenceAoSegmento ? 1 : 2, // ← NOVO: Para ordenação
+          };
+        })
+      );
+
+      // Ordenar: lojas do segmento do consultor primeiro
+      const lojasOrdenadas = lojasComDetalhes.sort((a, b) => {
+        if (a.prioridade !== b.prioridade) {
+          return a.prioridade - b.prioridade;
+        }
+        return a.nome.localeCompare(b.nome);
+      });
+
+      setLojas(lojasOrdenadas);
+      
+    } catch (error) {
+      console.error('Erro ao buscar lojas:', error);
+      setLojas([]);
+    }
   };
 
   const buscarMinhasCandidaturas = async () => {
-    const mockCandidaturas = [
-      { lojaId: 2, status: 'pendente', dataCandidatura: '2024-01-15' },
-    ];
-    setMinhasCandidaturas(mockCandidaturas);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { data: consultor } = await supabase
+        .from('consultores')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!consultor) return;
+
+      const { data: candidaturas, error } = await supabase
+        .from('aprovacoes_consultores')
+        .select('loja_id, status, created_at')
+        .eq('consultor_id', consultor.id)
+        .in('status', ['pendente', 'recusado']);
+
+      if (error) throw error;
+
+      const candidaturasFormatadas = (candidaturas || []).map(c => ({
+        lojaId: c.loja_id,
+        status: c.status,
+        dataCandidatura: c.created_at,
+      }));
+
+      setMinhasCandidaturas(candidaturasFormatadas);
+      
+    } catch (error) {
+      console.error('Erro ao buscar candidaturas:', error);
+      setMinhasCandidaturas([]);
+    }
   };
 
   const buscarLojasAprovadas = async () => {
-    const mockAprovadas = [1];
-    setLojasAprovadas(mockAprovadas);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { data: consultor } = await supabase
+        .from('consultores')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!consultor) return;
+
+      const { data: aprovacoes, error } = await supabase
+        .from('aprovacoes_consultores')
+        .select('loja_id')
+        .eq('consultor_id', consultor.id)
+        .eq('status', 'aprovado');
+
+      if (error) throw error;
+
+      const lojasIds = (aprovacoes || []).map(a => a.loja_id);
+      setLojasAprovadas(lojasIds);
+      
+    } catch (error) {
+      console.error('Erro ao buscar lojas aprovadas:', error);
+      setLojasAprovadas([]);
+    }
   };
 
   const candidatarSe = async (lojaId) => {
     try {
-      console.log('Candidatando-se para loja:', lojaId);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        alert('❌ Você precisa estar logado para se candidatar.');
+        return;
+      }
+
+      const { data: consultor } = await supabase
+        .from('consultores')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!consultor) {
+        alert('❌ Erro ao identificar consultor.');
+        return;
+      }
+
+      // Criar candidatura
+      const { error } = await supabase
+        .from('aprovacoes_consultores')
+        .insert({
+          consultor_id: consultor.id,
+          loja_id: lojaId,
+          status: 'pendente',
+        });
+
+      if (error) throw error;
+
+      // Atualizar lista local
       setMinhasCandidaturas([
         ...minhasCandidaturas,
         { lojaId, status: 'pendente', dataCandidatura: new Date().toISOString() },
       ]);
+
       alert('✅ Candidatura enviada com sucesso!');
+      
     } catch (error) {
       console.error('Erro ao candidatar:', error);
-      alert('❌ Erro ao enviar candidatura');
+      
+      if (error.code === '23505') {
+        alert('⚠️ Você já possui uma candidatura para esta loja.');
+      } else {
+        alert('❌ Erro ao enviar candidatura. Tente novamente.');
+      }
     }
   };
 
@@ -120,6 +280,15 @@ const StoresPanel = ({ consultorId }) => {
 
   const todosSetores = [...new Set(lojas.flatMap(loja => loja.setores))];
 
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.loadingSpinner}>🔄</div>
+        <p>Carregando lojas...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -138,6 +307,21 @@ const StoresPanel = ({ consultorId }) => {
           </div>
         </div>
       </div>
+
+      {/* Badge de Segmentos do Consultor */}
+      {consultorSegmentos.length > 0 && (
+        <div style={styles.segmentosConsultorBanner}>
+          <span style={styles.segmentosBannerIcon}>🎯</span>
+          <div style={styles.segmentosBannerContent}>
+            <strong>Seus segmentos:</strong>
+            <div style={styles.segmentosBannerList}>
+              {consultorSegmentos.map(seg => (
+                <span key={seg} style={styles.segmentoBadge}>{seg}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filtros */}
       <div style={styles.filtrosContainer}>
@@ -206,7 +390,26 @@ const StoresPanel = ({ consultorId }) => {
           const statusCandidatura = getStatusCandidatura(loja.id, loja.aceitaCandidaturas);
           
           return (
-            <div key={loja.id} style={styles.lojaCard}>
+            <div 
+              key={loja.id} 
+              style={{
+                ...styles.lojaCard,
+                // Destacar lojas do segmento do consultor
+                border: loja.pertenceAoSegmento 
+                  ? `2px solid ${CONSULTOR_PRIMARY}` 
+                  : '1px solid #e9ecef',
+                boxShadow: loja.pertenceAoSegmento
+                  ? '0 4px 12px rgba(44, 90, 160, 0.15)'
+                  : 'none',
+              }}
+            >
+              {/* Badge "Seu Segmento" */}
+              {loja.pertenceAoSegmento && (
+                <div style={styles.seuSegmentoBadge}>
+                  🎯 Seu Segmento
+                </div>
+              )}
+
               {/* Header da Loja */}
               <div style={styles.lojaHeader}>
                 <div style={styles.lojaIconContainer}>
@@ -313,6 +516,18 @@ const styles = {
     boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
     padding: '25px',
   },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px',
+    gap: '15px',
+  },
+  loadingSpinner: {
+    fontSize: '3rem',
+    animation: 'spin 1s linear infinite',
+  },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -347,6 +562,53 @@ const styles = {
     fontWeight: 'bold',
     color: CONSULTOR_PRIMARY,
     margin: 0,
+  },
+  // NOVO: Banner de segmentos do consultor
+  segmentosConsultorBanner: {
+    backgroundColor: '#fff3cd',
+    border: '2px solid #ffc107',
+    borderRadius: '12px',
+    padding: '15px 20px',
+    marginBottom: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+  },
+  segmentosBannerIcon: {
+    fontSize: '2rem',
+    flexShrink: 0,
+  },
+  segmentosBannerContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  segmentosBannerList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  segmentoBadge: {
+    backgroundColor: '#ffc107',
+    color: '#333',
+    padding: '6px 14px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600',
+  },
+  // NOVO: Badge "Seu Segmento" no card
+  seuSegmentoBadge: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    backgroundColor: CONSULTOR_PRIMARY,
+    color: 'white',
+    padding: '6px 12px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '700',
+    zIndex: 1,
   },
   filtrosContainer: {
     display: 'flex',
@@ -403,7 +665,7 @@ const styles = {
     gap: '20px',
   },
   lojaCard: {
-    border: '1px solid #e9ecef',
+    position: 'relative', // Para o badge "Seu Segmento"
     borderRadius: '12px',
     padding: '20px',
     transition: 'box-shadow 0.2s',
@@ -544,5 +806,22 @@ const styles = {
     margin: 0,
   },
 };
+
+// Adicionar animação de loading
+if (typeof document !== 'undefined') {
+  const styleSheet = document.styleSheets[0];
+  if (styleSheet) {
+    try {
+      styleSheet.insertRule(`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `, styleSheet.cssRules.length);
+    } catch (e) {
+      // Ignora se já existir
+    }
+  }
+}
 
 export default StoresPanel;
