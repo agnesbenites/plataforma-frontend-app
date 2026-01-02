@@ -75,6 +75,9 @@ export async function criarProduto(produto, lojaId) {
     categoria: produto.categoria,
     preco: Number(produto.preco) || 0,
     estoque: Number(produto.estoque) || 0,
+    descricao: produto.descricao || null,
+    sku: produto.sku || null,
+    fotos: produto.fotos || [],
   };
 
   // Campos de moda - só adiciona se categoria contiver "Moda"
@@ -116,7 +119,8 @@ export async function criarProduto(produto, lojaId) {
 }
 
 /* =====================================================
-   ✏️ EDITAR PRODUTO
+   ✏️ EDITAR PRODUTO - VERSÃO COMPLETA
+   Suporta: nome, preço, comissão, estoque, descrição, fotos, sku
 ===================================================== */
 export async function editarProduto(produtoId, updates) {
   console.log("[produtos.service] editarProduto:", produtoId, updates);
@@ -126,16 +130,22 @@ export async function editarProduto(produtoId, updates) {
   }
 
   // Converte campos do frontend para o banco
-  const payload = { ...updates };
+  const payload = {};
   
-  if (payload.comissao !== undefined) {
-    payload.commission_rate = Number(payload.comissao);
-    delete payload.comissao;
-  }
+  // Campos simples
+  if (updates.nome !== undefined) payload.nome = updates.nome;
+  if (updates.preco !== undefined) payload.preco = Number(updates.preco);
+  if (updates.estoque !== undefined) payload.estoque = Number(updates.estoque);
+  if (updates.descricao !== undefined) payload.descricao = updates.descricao;
+  if (updates.sku !== undefined) payload.sku = updates.sku;
+  if (updates.fotos !== undefined) payload.fotos = updates.fotos;
   
-  if (payload.estoqueMinimo !== undefined) {
-    delete payload.estoqueMinimo;
+  // Comissão (frontend usa 'comissao', banco usa 'commission_rate')
+  if (updates.comissao !== undefined) {
+    payload.commission_rate = Number(updates.comissao);
   }
+
+  console.log("[produtos.service] Payload para atualização:", payload);
 
   const { data, error } = await supabase
     .from("produtos")
@@ -152,6 +162,7 @@ export async function editarProduto(produtoId, updates) {
     throw error;
   }
 
+  console.log("[produtos.service] ✅ Produto editado com sucesso:", data);
   return data;
 }
 
