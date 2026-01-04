@@ -1,13 +1,14 @@
 // src/pages/Onboarding/MarketingOnboarding.jsx
-// VERSÃO COM BACKGROUNDS E TEXTO REFORMULADO
+// FLUXO CORRETO: Slides → Comparativo de Planos → Cadastro
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const MarketingOnboarding = () => {
+  const [etapa, setEtapa] = useState('slides'); // 'slides' ou 'planos'
   const [slideAtual, setSlideAtual] = useState(0);
   const [faturamentoEstimado, setFaturamentoEstimado] = useState('');
-  const [mostrarCalculadora, setMostrarCalculadora] = useState(false);
+  const [planoSelecionado, setPlanoSelecionado] = useState(null);
   const navigate = useNavigate();
 
   const slides = [
@@ -24,14 +25,11 @@ const MarketingOnboarding = () => {
       ],
       color: '#3b82f6',
       badge: 'TODOS OS PLANOS',
-      // ✅ NOVO - Background personalizado
-      backgroundImage: '/img/onboarding/slide1-complemento.jpg',
-      backgroundOverlay: 'rgba(59, 130, 246, 0.85)' // Azul com transparência
     },
     {
       icon: '⏰',
       title: 'Modelo de Economia Colaborativa',
-      subtitle: 'Profissionais Sob Demanda, Como Apps de Entrega',
+      subtitle: 'Profissionais Sob Demanda',
       description: 'Assim como apps de transporte e entrega revolucionaram seus mercados, aplicamos o mesmo modelo às vendas: profissionais autônomos atendem seus clientes quando seu time está ocupado.',
       benefits: [
         '✅ SLA de 5 minutos para overflow (Plano Pro)',
@@ -41,8 +39,6 @@ const MarketingOnboarding = () => {
       ],
       color: '#10b981',
       badge: 'PLANO PRO',
-      backgroundImage: '/img/onboarding/slide2-overflow.jpg',
-      backgroundOverlay: 'rgba(16, 185, 129, 0.85)'
     },
     {
       icon: '💰',
@@ -57,8 +53,6 @@ const MarketingOnboarding = () => {
       ],
       color: '#f59e0b',
       badge: 'PLANO ENTERPRISE',
-      backgroundImage: '/img/onboarding/slide3-estoque.jpg',
-      backgroundOverlay: 'rgba(245, 158, 11, 0.85)'
     },
     {
       icon: '📊',
@@ -73,8 +67,6 @@ const MarketingOnboarding = () => {
       ],
       color: '#8b5cf6',
       badge: 'COMISSÃO DINÂMICA',
-      backgroundImage: '/img/onboarding/slide4-comissao.jpg',
-      backgroundOverlay: 'rgba(139, 92, 246, 0.85)'
     },
     {
       icon: '🎯',
@@ -84,24 +76,74 @@ const MarketingOnboarding = () => {
       benefits: [],
       color: '#ef4444',
       badge: 'SIMULE SEU GANHO',
-      backgroundImage: '/img/onboarding/slide5-roi.jpg',
-      backgroundOverlay: 'rgba(239, 68, 68, 0.85)'
+      mostrarCalculadora: true,
+    }
+  ];
+
+  const planos = [
+    {
+      id: 'basic',
+      nome: 'BÁSICO',
+      preco: 50,
+      descricao: 'Ideal para pequenos negócios',
+      features: [
+        'Até 100 produtos',
+        '10 consultores disponíveis',
+        'Dashboard básico',
+        'Suporte por email',
+        'Edição de produtos: 24h de trava'
+      ],
+      cor: '#1A2332',
+      stripeUrl: 'https://buy.stripe.com/00w7sL2z6ceE11cd8ZgQE01',
+    },
+    {
+      id: 'pro',
+      nome: 'PRO',
+      preco: 150,
+      descricao: 'Para negócios em crescimento',
+      features: [
+        'Até 1.000 produtos',
+        '30 consultores disponíveis',
+        'SLA de 5 minutos (Transbordo)',
+        'Dashboard avançado',
+        'Suporte prioritário',
+        'Integração ERP semanal',
+        'Edição de produtos: 12h de trava'
+      ],
+      cor: '#2C3E50',
+      destaque: true,
+      stripeUrl: 'https://buy.stripe.com/dRm8wP7Tq1A011c1qhgQE02',
+    },
+    {
+      id: 'enterprise',
+      nome: 'ENTERPRISE',
+      preco: 360,
+      descricao: 'Solução completa para grandes redes',
+      features: [
+        'Produtos ilimitados',
+        'Consultores ilimitados',
+        'BI de Liquidez de Estoque',
+        'Missões de venda automáticas',
+        'Dashboard ROI completo',
+        'Suporte VIP 24/7',
+        'API personalizada',
+        'Multi-filiais',
+        'Integração real-time',
+        'Edição de produtos: 4h de trava'
+      ],
+      cor: '#34495E',
+      stripeUrl: 'https://buy.stripe.com/3cI3cv2z6fqQaBM8SJgQE03',
     }
   ];
 
   const slideAtualData = slides[slideAtual];
 
-  useEffect(() => {
-    if (slideAtual === 4) {
-      setMostrarCalculadora(true);
-    }
-  }, [slideAtual]);
-
   const proximoSlide = () => {
     if (slideAtual < slides.length - 1) {
       setSlideAtual(slideAtual + 1);
     } else {
-      handleComecar();
+      // ✅ DEPOIS DO ÚLTIMO SLIDE → VAI PARA COMPARATIVO DE PLANOS
+      setEtapa('planos');
     }
   };
 
@@ -111,9 +153,20 @@ const MarketingOnboarding = () => {
     }
   };
 
-  const handleComecar = () => {
+  const selecionarPlano = (plano) => {
+    setPlanoSelecionado(plano.id);
+    
+    // Salvar no localStorage
+    localStorage.setItem('planoEscolhido', plano.id);
     localStorage.setItem('faturamentoEstimado', faturamentoEstimado);
+    
+    // ✅ IR PARA CADASTRO
     navigate('/cadastro/lojista');
+  };
+
+  const voltarParaSlides = () => {
+    setEtapa('slides');
+    setSlideAtual(slides.length - 1);
   };
 
   const calcularROI = () => {
@@ -142,147 +195,208 @@ const MarketingOnboarding = () => {
 
   const roi = calcularROI();
 
-  return (
-    <div style={{
-      ...styles.container,
-      // ✅ NOVO - Background com imagem
-      backgroundImage: `linear-gradient(${slideAtualData.backgroundOverlay}, ${slideAtualData.backgroundOverlay}), url('${slideAtualData.backgroundImage}')`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
-    }}>
-      {/* Barra de progresso */}
-      <div style={styles.progressContainer}>
-        <div style={styles.progressBar}>
-          {slides.map((_, index) => (
-            <div
-              key={index}
+  // ========== RENDERIZAÇÃO DOS SLIDES ==========
+  if (etapa === 'slides') {
+    return (
+      <div style={{
+        ...styles.container,
+        background: `linear-gradient(135deg, ${slideAtualData.color}15 0%, ${slideAtualData.color}30 100%)`,
+      }}>
+        {/* Barra de progresso */}
+        <div style={styles.progressContainer}>
+          <div style={styles.progressBar}>
+            {slides.map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  ...styles.progressSegment,
+                  backgroundColor: index <= slideAtual ? slideAtualData.color : '#e5e7eb',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Conteúdo principal */}
+        <div style={styles.content}>
+          {/* Badge */}
+          <div style={{
+            ...styles.badge,
+            backgroundColor: slideAtualData.color,
+          }}>
+            {slideAtualData.badge}
+          </div>
+
+          {/* Ícone */}
+          <div style={styles.iconContainer}>
+            <span style={styles.icon}>{slideAtualData.icon}</span>
+          </div>
+
+          {/* Título */}
+          <h1 style={styles.title}>{slideAtualData.title}</h1>
+          <h2 style={styles.subtitle}>{slideAtualData.subtitle}</h2>
+
+          {/* Descrição */}
+          <p style={styles.description}>{slideAtualData.description}</p>
+
+          {/* Benefits ou Calculadora */}
+          {slideAtualData.mostrarCalculadora ? (
+            <div style={styles.calculadoraContainer}>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>💰 Faturamento Mensal Estimado:</label>
+                <input
+                  type="text"
+                  value={formatarMoeda(parseFloat(faturamentoEstimado) || 0)}
+                  onChange={handleInputFaturamento}
+                  placeholder="R$ 0,00"
+                  style={styles.input}
+                />
+              </div>
+
+              {faturamentoEstimado && (
+                <div style={styles.roiPreview}>
+                  <p style={styles.roiTexto}>
+                    📊 Você pode estar perdendo <strong>{formatarMoeda(roi.receitaRecuperada)}/mês</strong> por falta de overflow!
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ul style={styles.benefitsList}>
+              {slideAtualData.benefits.map((benefit, index) => (
+                <li key={index} style={styles.benefitItem}>
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Navegação */}
+          <div style={styles.navigation}>
+            {slideAtual > 0 && (
+              <button onClick={slideAnterior} style={styles.buttonSecondary}>
+                ← Voltar
+              </button>
+            )}
+
+            <button
+              onClick={proximoSlide}
               style={{
-                ...styles.progressSegment,
-                backgroundColor: index <= slideAtual ? slideAtualData.color : '#e5e7eb',
+                ...styles.buttonPrimary,
+                backgroundColor: slideAtualData.color,
               }}
-            />
-          ))}
+            >
+              {slideAtual === slides.length - 1 ? 'Ver Planos →' : 'Próximo →'}
+            </button>
+          </div>
+
+          {/* Contador de slides */}
+          <div style={styles.slideCounter}>
+            {slideAtual + 1} / {slides.length}
+          </div>
+
+          {/* Botão pular */}
+          <button onClick={() => setEtapa('planos')} style={styles.skipButton}>
+            Pular para escolha de planos →
+          </button>
+
+          {/* Tagline */}
+          <div style={styles.tagline}>
+            🚚 Profissionais Sob Demanda Para Suas Vendas
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Conteúdo principal */}
-      <div style={styles.content}>
-        {/* Badge */}
-        <div style={{
-          ...styles.badge,
-          backgroundColor: slideAtualData.color,
-        }}>
-          {slideAtualData.badge}
-        </div>
+  // ========== RENDERIZAÇÃO DO COMPARATIVO DE PLANOS ==========
+  return (
+    <div style={styles.planosContainer}>
+      <div style={styles.planosHeader}>
+        <button onClick={voltarParaSlides} style={styles.backButton}>
+          ← Voltar para apresentação
+        </button>
+        
+        <h1 style={styles.planosTitle}>Escolha Seu Plano</h1>
+        <p style={styles.planosSubtitle}>
+          Planos flexíveis para lojas de todos os tamanhos
+        </p>
 
-        {/* Ícone */}
-        <div style={styles.iconContainer}>
-          <span style={styles.icon}>{slideAtualData.icon}</span>
-        </div>
+        {faturamentoEstimado && (
+          <div style={styles.roiInfo}>
+            <p style={styles.roiInfoTexto}>
+              💰 Com faturamento de <strong>{formatarMoeda(parseFloat(faturamentoEstimado))}/mês</strong>,
+              você pode recuperar até <strong>{formatarMoeda(roi.receitaRecuperada)}</strong> em vendas perdidas!
+            </p>
+          </div>
+        )}
+      </div>
 
-        {/* Título */}
-        <h1 style={styles.title}>{slideAtualData.title}</h1>
-        <h2 style={styles.subtitle}>{slideAtualData.subtitle}</h2>
+      <div style={styles.planosGrid}>
+        {planos.map((plano) => (
+          <div
+            key={plano.id}
+            style={{
+              ...styles.planoCard,
+              backgroundColor: plano.cor,
+              transform: plano.destaque ? 'scale(1.05)' : 'scale(1)',
+              border: plano.destaque ? '3px solid #F4D03F' : 'none',
+            }}
+          >
+            {plano.destaque && <div style={styles.planoTag}>MAIS POPULAR</div>}
 
-        {/* Descrição */}
-        <p style={styles.description}>{slideAtualData.description}</p>
-
-        {/* Benefits ou Calculadora */}
-        {slideAtual === 4 && mostrarCalculadora ? (
-          <div style={styles.calculadoraContainer}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>💰 Faturamento Mensal Estimado:</label>
-              <input
-                type="text"
-                value={formatarMoeda(parseFloat(faturamentoEstimado) || 0)}
-                onChange={handleInputFaturamento}
-                placeholder="R$ 0,00"
-                style={styles.input}
-              />
+            <h3 style={styles.planoNome}>{plano.nome}</h3>
+            <div style={styles.planoPreco}>
+              <span style={styles.planoPrecoValor}>R$ {plano.preco}</span>
+              <span style={styles.planoPrecoPeriodo}>/mês</span>
             </div>
+            <p style={styles.planoDescricao}>{plano.descricao}</p>
 
             {faturamentoEstimado && (
-              <div style={styles.roiCards}>
-                <div style={styles.roiCard}>
-                  <div style={styles.roiPlanName}>BASIC</div>
-                  <div style={styles.roiValue}>R$ 50/mês</div>
-                  <div style={styles.roiMultiplier}>ROI: {roi.roiBasic}x</div>
-                  <div style={styles.roiRecuperado}>
-                    Recupera: {formatarMoeda(roi.receitaRecuperada)}
-                  </div>
+              <div style={styles.planoROI}>
+                <div style={styles.planoROIValor}>
+                  ROI: {plano.id === 'basic' ? roi.roiBasic : plano.id === 'pro' ? roi.roiPro : roi.roiEnterprise}x
                 </div>
-
-                <div style={{...styles.roiCard, ...styles.roiCardDestaque}}>
-                  <div style={styles.roiBadge}>MAIS POPULAR</div>
-                  <div style={styles.roiPlanName}>PRO</div>
-                  <div style={styles.roiValue}>R$ 150/mês</div>
-                  <div style={styles.roiMultiplier}>ROI: {roi.roiPro}x</div>
-                  <div style={styles.roiRecuperado}>
-                    Recupera: {formatarMoeda(roi.receitaRecuperada)}
-                  </div>
-                </div>
-
-                <div style={styles.roiCard}>
-                  <div style={styles.roiPlanName}>ENTERPRISE</div>
-                  <div style={styles.roiValue}>R$ 360/mês</div>
-                  <div style={styles.roiMultiplier}>ROI: {roi.roiEnterprise}x</div>
-                  <div style={styles.roiRecuperado}>
-                    Recupera: {formatarMoeda(roi.receitaRecuperada)}
-                  </div>
+                <div style={styles.planoROITexto}>
+                  Retorno sobre investimento
                 </div>
               </div>
             )}
-          </div>
-        ) : (
-          <ul style={styles.benefitsList}>
-            {slideAtualData.benefits.map((benefit, index) => (
-              <li key={index} style={styles.benefitItem}>
-                {benefit}
-              </li>
-            ))}
-          </ul>
-        )}
 
-        {/* Navegação */}
-        <div style={styles.navigation}>
-          {slideAtual > 0 && (
-            <button onClick={slideAnterior} style={styles.buttonSecondary}>
-              ← Voltar
+            <ul style={styles.planoFeatures}>
+              {plano.features.map((feature, idx) => (
+                <li key={idx} style={styles.planoFeature}>
+                  ✅ {feature}
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={() => selecionarPlano(plano)}
+              style={{
+                ...styles.planoButton,
+                backgroundColor: plano.destaque ? '#F4D03F' : '#5DADE2',
+                color: plano.destaque ? '#1A2332' : 'white',
+              }}
+            >
+              Escolher {plano.nome}
             </button>
-          )}
+          </div>
+        ))}
+      </div>
 
-          <button
-            onClick={proximoSlide}
-            style={{
-              ...styles.buttonPrimary,
-              backgroundColor: slideAtualData.color,
-            }}
-          >
-            {slideAtual === slides.length - 1 ? '🚀 Começar Agora' : 'Próximo →'}
-          </button>
-        </div>
-
-        {/* Contador de slides */}
-        <div style={styles.slideCounter}>
-          {slideAtual + 1} / {slides.length}
-        </div>
-
-        {/* Botão pular */}
-        <button onClick={handleComecar} style={styles.skipButton}>
-          Pular introdução →
-        </button>
-
-        {/* Tagline */}
-        <div style={styles.tagline}>
-          🚚 O Uber das Vendas: Atendimento Humanizado Sob Demanda
-        </div>
+      <div style={styles.planosFooter}>
+        <p style={styles.planosFooterTexto}>
+          💳 Pagamento processado via Stripe • ✅ Cancele quando quiser • 🔒 100% seguro
+        </p>
       </div>
     </div>
   );
 };
 
+// ========== ESTILOS ==========
 const styles = {
+  // ... (mantenho os estilos anteriores dos slides)
   container: {
     minHeight: '100vh',
     display: 'flex',
@@ -292,7 +406,6 @@ const styles = {
     padding: '20px',
     fontFamily: "'Inter', -apple-system, sans-serif",
     transition: 'background 0.6s ease-in-out',
-    position: 'relative',
   },
   
   progressContainer: {
@@ -321,12 +434,11 @@ const styles = {
   content: {
     maxWidth: '700px',
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'white',
     borderRadius: '24px',
     padding: '50px 40px',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
     textAlign: 'center',
-    backdropFilter: 'blur(10px)',
   },
   
   badge: {
@@ -347,7 +459,6 @@ const styles = {
   
   icon: {
     fontSize: '4rem',
-    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))',
   },
   
   title: {
@@ -392,7 +503,7 @@ const styles = {
   },
   
   inputGroup: {
-    marginBottom: '30px',
+    marginBottom: '20px',
   },
   
   label: {
@@ -412,68 +523,20 @@ const styles = {
     border: '3px solid #3b82f6',
     borderRadius: '12px',
     outline: 'none',
-    transition: 'all 0.3s',
   },
   
-  roiCards: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '20px',
-    marginTop: '30px',
-  },
-  
-  roiCard: {
-    backgroundColor: '#f8fafc',
-    padding: '24px 20px',
-    borderRadius: '16px',
-    border: '2px solid #e2e8f0',
-    position: 'relative',
-  },
-  
-  roiCardDestaque: {
-    backgroundColor: '#eff6ff',
-    border: '3px solid #3b82f6',
-    transform: 'scale(1.05)',
-  },
-  
-  roiBadge: {
-    position: 'absolute',
-    top: '-12px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    padding: '4px 12px',
+  roiPreview: {
+    backgroundColor: '#fef3c7',
+    border: '2px solid #f59e0b',
     borderRadius: '12px',
-    fontSize: '0.7rem',
-    fontWeight: '700',
+    padding: '20px',
+    marginTop: '20px',
   },
   
-  roiPlanName: {
-    fontSize: '1rem',
-    fontWeight: '700',
-    color: '#64748b',
-    marginBottom: '8px',
-  },
-  
-  roiValue: {
+  roiTexto: {
     fontSize: '1.1rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '12px',
-  },
-  
-  roiMultiplier: {
-    fontSize: '1.8rem',
-    fontWeight: '800',
-    color: '#3b82f6',
-    marginBottom: '8px',
-  },
-  
-  roiRecuperado: {
-    fontSize: '0.9rem',
-    color: '#10b981',
-    fontWeight: '600',
+    color: '#92400e',
+    margin: 0,
   },
   
   navigation: {
@@ -504,7 +567,6 @@ const styles = {
     border: '2px solid #e2e8f0',
     borderRadius: '12px',
     cursor: 'pointer',
-    transition: 'all 0.3s',
   },
   
   slideCounter: {
@@ -527,6 +589,167 @@ const styles = {
     fontSize: '0.95rem',
     color: '#94a3b8',
     fontStyle: 'italic',
+  },
+  
+  // ========== ESTILOS DOS PLANOS ==========
+  planosContainer: {
+    minHeight: '100vh',
+    backgroundColor: '#f8f9fa',
+    padding: '40px 20px',
+    fontFamily: "'Inter', sans-serif",
+  },
+  
+  planosHeader: {
+    maxWidth: '1200px',
+    margin: '0 auto 50px',
+    textAlign: 'center',
+  },
+  
+  backButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#64748b',
+    fontSize: '1rem',
+    cursor: 'pointer',
+    marginBottom: '30px',
+    textDecoration: 'underline',
+  },
+  
+  planosTitle: {
+    fontSize: '3rem',
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: '15px',
+  },
+  
+  planosSubtitle: {
+    fontSize: '1.3rem',
+    color: '#64748b',
+    marginBottom: '30px',
+  },
+  
+  roiInfo: {
+    backgroundColor: '#eff6ff',
+    border: '2px solid #3b82f6',
+    borderRadius: '12px',
+    padding: '20px',
+    maxWidth: '700px',
+    margin: '0 auto',
+  },
+  
+  roiInfoTexto: {
+    fontSize: '1.1rem',
+    color: '#1e40af',
+    margin: 0,
+  },
+  
+  planosGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: '30px',
+    maxWidth: '1200px',
+    margin: '0 auto 50px',
+  },
+  
+  planoCard: {
+    padding: '40px 30px',
+    borderRadius: '20px',
+    color: 'white',
+    position: 'relative',
+    transition: 'all 0.3s',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+  },
+  
+  planoTag: {
+    position: 'absolute',
+    top: '-15px',
+    right: '20px',
+    backgroundColor: '#F4D03F',
+    color: '#1A2332',
+    padding: '6px 16px',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: '700',
+  },
+  
+  planoNome: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    marginBottom: '15px',
+  },
+  
+  planoPreco: {
+    marginBottom: '15px',
+  },
+  
+  planoPrecoValor: {
+    fontSize: '3rem',
+    fontWeight: '800',
+  },
+  
+  planoPrecoPeriodo: {
+    fontSize: '1rem',
+    opacity: 0.8,
+  },
+  
+  planoDescricao: {
+    fontSize: '0.95rem',
+    marginBottom: '25px',
+    opacity: 0.9,
+  },
+  
+  planoROI: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: '15px',
+    borderRadius: '12px',
+    marginBottom: '25px',
+  },
+  
+  planoROIValor: {
+    fontSize: '2rem',
+    fontWeight: '800',
+    marginBottom: '5px',
+  },
+  
+  planoROITexto: {
+    fontSize: '0.85rem',
+    opacity: 0.9,
+  },
+  
+  planoFeatures: {
+    listStyle: 'none',
+    padding: 0,
+    marginBottom: '30px',
+    textAlign: 'left',
+  },
+  
+  planoFeature: {
+    fontSize: '0.95rem',
+    marginBottom: '12px',
+    lineHeight: '1.6',
+  },
+  
+  planoButton: {
+    width: '100%',
+    padding: '15px',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+  },
+  
+  planosFooter: {
+    textAlign: 'center',
+    maxWidth: '800px',
+    margin: '0 auto',
+  },
+  
+  planosFooterTexto: {
+    fontSize: '0.95rem',
+    color: '#64748b',
   },
 };
 
