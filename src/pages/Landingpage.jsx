@@ -1,5 +1,5 @@
 // app-frontend/src/pages/Landingpage.jsx
-// Landing Page Compra Smart - SEM ODOO
+// Landing Page Compra Smart - COMPLETA COM 3 PLANOS
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -10,47 +10,18 @@ import {
   FaMobileAlt, FaDesktop, FaRegCheckCircle
 } from 'react-icons/fa';
 
-// --- COMPONENTES AUXILIARES ---
-
-const FeatureCard = ({ text, highlight }) => (
-    <div style={{
-      ...styles.featureCard,
-      backgroundColor: highlight ? '#F7DC6F' : '#F7DC6F',
-    }}>
-      <p style={styles.featureText}>{text}</p>
-    </div>
-);
-
-const ReasonCard = ({ text, color }) => (
-    <div style={{...styles.reasonCard, backgroundColor: color, borderRadius: '15px'}}>
-      <p style={styles.reasonText}>{text}</p>
-    </div>
-);
-
-const OfferingCard = ({ title, icon, features, color }) => (
-    <div style={{...styles.offeringCard, borderColor: color}}>
-      <div style={styles.offeringIcon}>{icon}</div>
-      <h3 style={styles.offeringTitle}>{title}</h3>
-      <ul style={styles.offeringList}>
-        {features.map((feature, idx) => (
-          <li key={idx} style={styles.offeringItem}>
-            <FaRegCheckCircle color={color} size={14} style={{marginRight: 8}} /> {feature}
-          </li>
-        ))}
-      </ul>
-    </div>
-);
-
 const PlanCard = ({ name, price, period, description, features, color, highlighted, onBuy }) => (
   <div style={{
     ...styles.planCard,
     backgroundColor: color,
     transform: highlighted ? 'scale(1.05)' : 'scale(1)',
     boxShadow: highlighted ? '0 10px 30px rgba(0,0,0,0.3)' : '0 4px 15px rgba(0,0,0,0.1)',
+    border: highlighted ? '3px solid #F4D03F' : 'none',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: '600px'
+    minHeight: '650px'
   }}>
+    {highlighted && <div style={styles.planTag}>MAIS POPULAR</div>}
     <h4 style={styles.planName}>{name}</h4>
     <h3 style={styles.planPriceValue}>{price}</h3>
     <p style={styles.planPeriod}>{period}</p>
@@ -64,12 +35,15 @@ const PlanCard = ({ name, price, period, description, features, color, highlight
       ))}
     </ul>
     
-    <button onClick={onBuy} style={{
-      ...styles.planButton, 
-      backgroundColor: highlighted ? '#F4D03F' : '#5DADE2', 
-      color: highlighted ? '#1A2332' : 'white',
-      marginTop: 'auto'
-    }}>
+    <button 
+      onClick={onBuy} 
+      style={{
+        ...styles.planButton, 
+        backgroundColor: highlighted ? '#F4D03F' : '#5DADE2', 
+        color: highlighted ? '#1A2332' : 'white',
+        marginTop: 'auto'
+      }}
+    >
       ASSINAR AGORA
     </button>
   </div>
@@ -86,6 +60,7 @@ const Landingpage = () => {
   const STRIPE_URLS = {
     BASICO: 'https://buy.stripe.com/00w7sL2z6ceE11cd8ZgQE01',
     PRO: 'https://buy.stripe.com/dRm8wP7Tq1A011c1qhgQE02',
+    ENTERPRISE: 'https://buy.stripe.com/3cI3cv2z6fqQaBM8SJgQE03',
   };
 
   const handleStripeCheckout = (stripeLink) => {
@@ -269,51 +244,8 @@ const Landingpage = () => {
         </div>
       </section>
 
-      {/* PARA QUEM É */}
-      <section style={styles.forWhoSection}>
-        <h2 style={styles.sectionTitle}>Para Quem é a Compra Smart?</h2>
-        
-        <div style={styles.offeringsGrid}>
-          <OfferingCard 
-            title="Lojistas"
-            icon={<FaStore size={40} color="#1A2332" />}
-            color="#F4D03F"
-            features={[
-              'Aumente vendas sem contratar',
-              'Gerencie estoque e pedidos',
-              'Acompanhe consultores e comissões',
-              'Relatórios de desempenho'
-            ]}
-          />
-          
-          <OfferingCard 
-            title="Consultores"
-            icon={<FaUserTie size={40} color="#1A2332" />}
-            color="#5DADE2"
-            features={[
-              'Trabalhe de onde quiser',
-              'Escolha seus horários',
-              'Ganhe comissões generosas',
-              'Acesso a produtos de qualidade'
-            ]}
-          />
-          
-          <OfferingCard 
-            title="Clientes"
-            icon={<FaShoppingCart size={40} color="#1A2332" />}
-            color="#27AE60"
-            features={[
-              'Atendimento personalizado',
-              'Consultoria especializada',
-              'Compre de casa ou na loja',
-              'Produtos selecionados'
-            ]}
-          />
-        </div>
-      </section>
-
       {/* BENEFÍCIOS */}
-      <section id="beneficios" style={styles.section}>
+      <section id="beneficios" style={styles.benefitsSection}>
         <h2 style={styles.sectionTitle}>Por Que Escolher a Compra Smart?</h2>
         
         <div style={styles.benefitsGrid}>
@@ -375,6 +307,7 @@ const Landingpage = () => {
         </p>
         
         <div style={styles.plansGrid}>
+          {/* PLANO BÁSICO */}
           <PlanCard 
             name="Básico"
             price="R$ 99,90"
@@ -392,6 +325,7 @@ const Landingpage = () => {
             onBuy={() => handleStripeCheckout(STRIPE_URLS.BASICO)}
           />
 
+          {/* PLANO PRO */}
           <PlanCard 
             name="Pro"
             price="R$ 199,90"
@@ -411,6 +345,28 @@ const Landingpage = () => {
               'API de integração'
             ]}
             onBuy={() => handleStripeCheckout(STRIPE_URLS.PRO)}
+          />
+
+          {/* PLANO ENTERPRISE */}
+          <PlanCard 
+            name="Enterprise"
+            price="R$ 499,00"
+            period="por mês"
+            description="Para grandes operações"
+            color="#2C3E50"
+            features={[
+              'Tudo do Pro, mais:',
+              'Dashboard BI Avançado',
+              'Análise de ROI por consultor',
+              'Previsão de vendas (IA)',
+              'Análise de tendências',
+              'Relatórios customizados',
+              'Suporte premium 24/7',
+              'Gerente de conta dedicado',
+              'Treinamento personalizado',
+              'SLA garantido'
+            ]}
+            onBuy={() => handleStripeCheckout(STRIPE_URLS.ENTERPRISE)}
           />
         </div>
 
@@ -752,59 +708,25 @@ const styles = {
     lineHeight: '1.6',
   },
 
-  // PARA QUEM É
-  forWhoSection: {
+  // BENEFÍCIOS
+  benefitsSection: {
     backgroundColor: '#F8F9FA',
     padding: '80px 40px',
   },
-  offeringsGrid: {
+  benefitsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '40px',
     maxWidth: '1200px',
     margin: '0 auto',
   },
-  offeringCard: {
-    backgroundColor: 'white',
-    padding: '40px',
-    borderRadius: '15px',
-    border: '3px solid',
-    textAlign: 'center',
-  },
-  offeringIcon: {
-    marginBottom: '20px',
-  },
-  offeringTitle: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    marginBottom: '20px',
-    color: '#1A2332',
-  },
-  offeringList: {
-    listStyle: 'none',
-    padding: 0,
-    textAlign: 'left',
-  },
-  offeringItem: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '15px',
-    fontSize: '16px',
-    color: '#34495E',
-  },
-
-  // BENEFÍCIOS
-  benefitsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '40px',
-  },
   benefitCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'white',
     padding: '40px',
     borderRadius: '15px',
     textAlign: 'center',
     transition: 'transform 0.3s, box-shadow 0.3s',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
   },
   benefitTitle: {
     fontSize: '22px',
@@ -820,14 +742,14 @@ const styles = {
 
   // PLANOS
   plansSection: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'white',
     padding: '80px 40px',
   },
   plansGrid: {
     display: 'flex',
     justifyContent: 'center',
-    gap: '40px',
-    maxWidth: '1000px',
+    gap: '30px',
+    maxWidth: '1400px',
     margin: '0 auto 40px',
     flexWrap: 'wrap',
   },
@@ -836,14 +758,29 @@ const styles = {
     color: 'white',
     padding: '40px',
     borderRadius: '20px',
-    width: '350px',
+    width: '340px',
     textAlign: 'center',
     transition: 'transform 0.3s, box-shadow 0.3s',
+    position: 'relative',
+  },
+  planTag: {
+    position: 'absolute',
+    top: '-15px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#F4D03F',
+    color: '#1A2332',
+    padding: '8px 20px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    boxShadow: '0 4px 10px rgba(244, 208, 63, 0.3)',
   },
   planName: {
     fontSize: '28px',
     fontWeight: 'bold',
     marginBottom: '15px',
+    marginTop: '10px',
   },
   planPriceValue: {
     fontSize: '48px',
@@ -897,6 +834,7 @@ const styles = {
     padding: '80px 40px',
     maxWidth: '1200px',
     margin: '0 auto',
+    backgroundColor: '#F8F9FA',
   },
   testimonialsGrid: {
     display: 'grid',
@@ -904,7 +842,7 @@ const styles = {
     gap: '40px',
   },
   testimonialCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'white',
     padding: '40px',
     borderRadius: '15px',
     boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
@@ -1012,29 +950,6 @@ const styles = {
   footerBottomText: {
     fontSize: '14px',
     color: '#95A5A6',
-  },
-
-  // UTILITY
-  featureCard: {
-    padding: '15px 20px',
-    borderRadius: '10px',
-    marginBottom: '15px',
-  },
-  featureText: {
-    margin: 0,
-    fontSize: '15px',
-    fontWeight: '600',
-    color: '#1A2332',
-  },
-  reasonCard: {
-    padding: '20px',
-    color: 'white',
-    marginBottom: '20px',
-  },
-  reasonText: {
-    margin: 0,
-    fontSize: '16px',
-    fontWeight: '600',
   },
 };
 
