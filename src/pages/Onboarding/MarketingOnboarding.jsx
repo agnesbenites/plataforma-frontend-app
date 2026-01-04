@@ -14,7 +14,7 @@ const MarketingOnboarding = () => {
   const slides = [
     {
       icon: '🚀',
-      title: 'Não Substituímos Nada',
+      title: 'Não precisa de migração',
       subtitle: 'Somos o Complemento Perfeito do Seu Negócio',
       description: 'Seu sistema de gestão continua fazendo o que faz de melhor. A gente entra só com vendedores autônomos sob demanda - quando você precisa, sem custo fixo.',
       benefits: [
@@ -42,7 +42,7 @@ const MarketingOnboarding = () => {
     },
     {
       icon: '💰',
-      title: 'Gire Estoque Parado em Dinheiro',
+      title: 'Transforme Estoque Parado em Dinheiro',
       subtitle: 'BI Identifica, Consultores Vendem',
       description: 'Produtos parados há 60+ dias viram missões de venda com comissão turbinada. Nossa inteligência detecta automaticamente e mobiliza consultores especializados para escoar.',
       benefits: [
@@ -80,7 +80,7 @@ const MarketingOnboarding = () => {
     }
   ];
 
-  // ✅ PLANOS CORRETOS
+  // ✅ PLANOS 
   const planos = [
     {
       id: 'basic',
@@ -119,7 +119,6 @@ const MarketingOnboarding = () => {
         '📍 Marketing: 10km'
       ],
       cor: '#2C3E50',
-      destaque: true,
       stripeUrl: 'https://buy.stripe.com/dRm8wP7Tq1A011c1qhgQE02',
     },
     {
@@ -403,11 +402,11 @@ const MarketingOnboarding = () => {
               style={{
                 ...styles.planoCard,
                 backgroundColor: plano.cor,
-                transform: plano.destaque ? 'scale(1.05)' : 'scale(1)',
-                border: plano.destaque ? '3px solid #F4D03F' : 'none',
+                transform: 'scale(1)',
+                border: 'none',
               }}
             >
-              {plano.destaque && <div style={styles.planoTag}>MAIS POPULAR</div>}
+              
 
               <h3 style={styles.planoNome}>{plano.nome}</h3>
               <div style={styles.planoPreco}>
@@ -439,8 +438,8 @@ const MarketingOnboarding = () => {
                 onClick={() => selecionarPlano(plano)}
                 style={{
                   ...styles.planoButton,
-                  backgroundColor: plano.destaque ? '#F4D03F' : '#5DADE2',
-                  color: plano.destaque ? '#1A2332' : 'white',
+                  backgroundColor: '#5DADE2',
+                  color: 'white',
                 }}
               >
                 Escolher {plano.nome}
@@ -796,6 +795,9 @@ const styles = {
     position: 'relative',
     transition: 'all 0.3s',
     boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+    display: 'flex', // ✅ FLEX
+    flexDirection: 'column', // ✅ COLUNA
+    minHeight: '650px', // ✅ ALTURA MÍNIMA
   },
   
   planoTag: {
@@ -859,6 +861,7 @@ const styles = {
     padding: 0,
     marginBottom: '30px',
     textAlign: 'left',
+    flexGrow: 1, // ✅ CRESCE PARA EMPURRAR BOTÃO
   },
   
   planoFeature: {
@@ -876,6 +879,7 @@ const styles = {
     fontWeight: '700',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    marginTop: 'auto', // ✅ FICA NO FINAL
     boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
   },
   

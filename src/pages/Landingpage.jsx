@@ -49,7 +49,6 @@ const PlanCard = ({ name, price, period, description, features, color, highlight
     boxShadow: highlighted ? '0 10px 30px rgba(0,0,0,0.3)' : '0 4px 15px rgba(0,0,0,0.1)',
     border: highlighted ? '3px solid #F4D03F' : 'none'
   }}>
-    {highlighted && <div style={styles.tag}>POPULAR</div>}
     <h4 style={styles.planName}>{name}</h4>
     <h3 style={styles.planPriceValue}>{price}</h3>
     <p style={styles.planPeriod}>{period}</p>
@@ -108,6 +107,12 @@ const Landingpage = () => {
           <nav style={styles.nav}>
             <a href="#funcionalidades" style={styles.navLink}>Funcionalidades</a>
             <a href="#planos" onClick={scrollToPlanos} style={styles.navLink}>Planos</a>
+            <button 
+              onClick={() => navigate('/quiz')}
+              style={styles.quizNavButton}
+            >
+              🎯 Descubra Seu Plano
+            </button>
             <a href="/contato" style={styles.navLink}>Contato</a>
           </nav>
 
@@ -348,7 +353,6 @@ const Landingpage = () => {
                   "Cadastre ate 5 filiais"
                 ]}
                 color="#2C3E50"
-                highlighted
                 onBuy={() => handleStripeCheckout(STRIPE_URLS.PRO)}
               />
 
@@ -368,6 +372,17 @@ const Landingpage = () => {
                 onBuy={() => handleStripeCheckout(STRIPE_URLS.ENTERPRISE)}
               />
             </div>
+          </div>
+
+          {/* 🚀 AVISO ODOO */}
+          <div style={styles.odooAnuncio}>
+            <div style={styles.odooIcon}>🎉</div>
+            <h3 style={styles.odooTitulo}>Em Breve: Integração com Odoo!</h3>
+            <p style={styles.odooTexto}>
+              Estamos preparando integração completa com <strong>Odoo ERP + CRM</strong> para você ter uma gestão 360° do seu negócio. 
+              Controle financeiro, estoque, vendas, marketing e muito mais - tudo integrado!
+            </p>
+            <div style={styles.odooTag}>🔜 PRÓXIMA ETAPA</div>
           </div>
 
           {/* PACOTES ADICIONAIS */}
@@ -524,6 +539,18 @@ const styles = {
     fontSize: '1.05rem', // ✅ AUMENTADO de 0.95rem
     fontWeight: '500',
     transition: 'color 0.2s',
+  },
+  quizNavButton: { // ✅ NOVO
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    fontSize: '1.05rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
   },
   headerButtons: { // ✅ NOVO
     display: 'flex',
@@ -824,6 +851,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     textAlign: 'left',
+    minHeight: '600px', // ✅ ALINHA OS BOTÕES
   },
   tag: {
     position: 'absolute',
@@ -881,7 +909,7 @@ const styles = {
     fontWeight: 'bold',
     cursor: 'pointer',
     transition: 'all 0.3s',
-    marginTop: '20px',
+    marginTop: 'auto', // ✅ EMPURRA PARA O FINAL
   },
 
   // PACOTES ADICIONAIS
@@ -1000,3 +1028,39 @@ const styles = {
 };
 
 export default Landingpage;
+  // 🎉 ODOO ANÚNCIO
+  odooAnuncio: {
+    backgroundColor: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    padding: '40px',
+    borderRadius: '20px',
+    textAlign: 'center',
+    color: 'white',
+    marginTop: '60px',
+    boxShadow: '0 10px 30px rgba(99, 102, 241, 0.3)',
+  },
+  odooIcon: {
+    fontSize: '3rem',
+    marginBottom: '15px',
+  },
+  odooTitulo: {
+    fontSize: '2rem',
+    fontWeight: '800',
+    marginBottom: '15px',
+  },
+  odooTexto: {
+    fontSize: '1.1rem',
+    lineHeight: '1.7',
+    maxWidth: '700px',
+    margin: '0 auto 20px',
+    opacity: 0.95,
+  },
+  odooTag: {
+    display: 'inline-block',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: '10px 25px',
+    borderRadius: '25px',
+    fontSize: '0.9rem',
+    fontWeight: '700',
+    border: '2px solid rgba(255, 255, 255, 0.3)',
+  },
