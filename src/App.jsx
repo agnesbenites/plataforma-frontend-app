@@ -11,7 +11,7 @@ import TermsPage from "./pages/TermsPage";
 import AwaitingApproval from "./pages/AwaitingApproval";
 import ApprovalsPage from "./pages/ApprovalsPage";
 import AplicativoConfirmacao from "./pages/AplicativoConfirmacao";
-import MarketingOnboarding from "./pages/Onboarding/MarketingOnboarding"; // ✅ NOVO
+import MarketingOnboarding from "./pages/Onboarding/MarketingOnboarding";
 
 import RegisterPage from "./pages/RegisterPage";
 import LojistaRegisterPage from "./pages/LojistaDashboard/pages/LojistaRegisterPage";
@@ -24,7 +24,7 @@ import AdminLogin from "./pages/AdminDashboard/pages/AdminLogin";
 import LojistaEscolha from "./pages/LojistaDashboard/pages/LojistaEscolha";
 
 import ConsultorDashboard from "./pages/ConsultorDashboard/pages/ConsultorDashboard";
-import LojistaDashboard from "./pages/LojistaDashboard/LojistaDashboard"; // ✅ CORRIGIDO
+import LojistaDashboard from "./pages/LojistaDashboard/LojistaDashboard";
 import VendedorDashboard from "./pages/VendedorDashboard/pages/VendedorDashboard";
 import AdminDashboard from "./pages/AdminDashboard/pages/AdminDashboard";
 
@@ -93,9 +93,13 @@ function App() {
   return (
     <PlanoProvider>
       <Routes>
-        {/* Página inicial - Onboarding */}
-        <Route path="/" element={<Navigate to="/onboarding" replace />} />
+        {/* ✅ PÁGINA INICIAL É A LANDING */}
+        <Route path="/" element={<Landingpage />} />
+        
+        {/* Onboarding é uma rota separada */}
         <Route path="/onboarding" element={<MarketingOnboarding />} />
+        
+        {/* Cadastro */}
         <Route path="/cadastro/lojista" element={<LojistaRegisterPage />} />
 
         {/* Páginas públicas */}
