@@ -1,5 +1,5 @@
 // app-frontend/src/pages/Landingpage.jsx
-// Landing Page Compra Smart - COMPLETA COM 3 PLANOS
+// Landing Page Compra Smart - HERO BONITO SEM FANTASMA
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -89,28 +89,7 @@ const Landingpage = () => {
             <a href="#planos" style={styles.navLink}>Planos</a>
             <button 
               onClick={() => navigate('/quiz')} 
-              style={{
-                ...styles.navButton,
-                backgroundColor: '#3b82f6',
-                marginRight: '10px',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-              }}
+              style={styles.quizButton}
             >
               🎯 Descubra Seu Plano
             </button>
@@ -121,9 +100,10 @@ const Landingpage = () => {
         </div>
       </header>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION - TEXTO + IMAGEM */}
       <section style={styles.hero}>
         <div style={styles.heroContent}>
+          {/* LADO ESQUERDO - TEXTO */}
           <div style={styles.heroText}>
             <h1 style={styles.heroTitle}>
               Venda Mais com Consultores Autônomos Online
@@ -131,6 +111,8 @@ const Landingpage = () => {
             <p style={styles.heroSubtitle}>
               A plataforma que conecta sua loja a consultores especializados, aumentando vendas sem aumentar custos fixos
             </p>
+            
+            {/* BOTÕES */}
             <div style={styles.heroCTAs}>
               <button 
                 onClick={() => navigate('/cadastro')} 
@@ -164,14 +146,15 @@ const Landingpage = () => {
             </div>
           </div>
           
-          <div style={styles.heroImage}>
+          {/* LADO DIREITO - IMAGEM */}
+          <div style={styles.heroImageContainer}>
             <img 
               src="/img/hero-consultora.png" 
-              alt="Consultora Vendendo" 
-              style={styles.heroImgElement}
+              alt="Consultora Vendendo Online" 
+              style={styles.heroImage}
               onError={(e) => {
-                e.target.src = '/img/hero-fallback.png';
-                e.target.onerror = null;
+                // Se não achar imagem, esconde o container
+                e.target.parentElement.style.display = 'none';
               }}
             />
           </div>
@@ -523,6 +506,18 @@ const styles = {
     transition: 'color 0.3s',
     cursor: 'pointer',
   },
+  quizButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: '600',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+  },
   navButton: {
     backgroundColor: '#F4D03F',
     color: '#1A2332',
@@ -536,7 +531,7 @@ const styles = {
     boxShadow: '0 4px 10px rgba(244, 208, 63, 0.3)',
   },
 
-  // HERO
+  // HERO - TEXTO + IMAGEM
   hero: {
     background: 'linear-gradient(135deg, #1A2332 0%, #34495E 100%)',
     padding: '80px 40px',
@@ -595,15 +590,6 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.3s',
   },
-  heroImage: {
-    flex: 1,
-  },
-  heroImgElement: {
-    width: '100%',
-    maxWidth: '500px',
-    borderRadius: '20px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-  },
   trustBadges: {
     display: 'flex',
     gap: '30px',
@@ -615,6 +601,19 @@ const styles = {
     gap: '10px',
     color: '#ECF0F1',
     fontSize: '14px',
+  },
+  heroImageContainer: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroImage: {
+    width: '100%',
+    maxWidth: '500px',
+    height: 'auto',
+    borderRadius: '20px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
   },
 
   // NÚMEROS
