@@ -114,13 +114,31 @@ const Landingpage = () => {
         </div>
       </header>
 
-      {/* HERO SECTION - TELA CHEIA */}
+      {/* HERO SECTION - BANNER */}
       <section style={styles.hero}>
         <img 
           src="/img/hero-banner.png" 
-          alt="Compra Smart - Uma forma facil de unir vendas locais" 
+          alt="Compra Smart - Profissionais sob demanda para suas vendas" 
           style={styles.heroBannerImage}
         />
+      </section>
+
+      {/* CTA SECTION - LOGO APÓS O BANNER */}
+      <section style={styles.ctaSection}>
+        <div style={styles.ctaContainer}>
+          <h2 style={styles.ctaTitle}>
+            Pronto Para Multiplicar Suas Vendas?
+          </h2>
+          <p style={styles.ctaSubtitle}>
+            Descubra como consultores autônomos podem transformar seu negócio
+          </p>
+          <button 
+            onClick={() => navigate('/onboarding')}
+            style={styles.ctaButton}
+          >
+            🚀 COMEÇAR AGORA
+          </button>
+        </div>
       </section>
 
       {/* BENEFICIOS PARA LOJISTAS */}
@@ -498,19 +516,51 @@ const styles = {
   hero: {
     width: '100%',
     margin: '0',
-    minHeight: '85vh', // ✅ AUMENTADO
     backgroundColor: '#A8E6CF', 
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '0',
-    overflow: 'hidden', // ✅ NOVO
   },
   heroBannerImage: {
     width: '100%', 
-    height: '85vh', // ✅ ALTURA FIXA
+    height: 'auto', // ✅ AUTO = Tamanho natural
     display: 'block',
     objectFit: 'cover',
+  },
+  
+  // ✅ NOVO - SEÇÃO CTA
+  ctaSection: {
+    backgroundColor: '#1A2332',
+    padding: '60px 20px',
+    textAlign: 'center',
+  },
+  ctaContainer: {
+    maxWidth: '800px',
+    margin: '0 auto',
+  },
+  ctaTitle: {
+    fontSize: '2.5rem',
+    fontWeight: '800',
+    color: 'white',
+    marginBottom: '15px',
+  },
+  ctaSubtitle: {
+    fontSize: '1.3rem',
+    color: '#94a3b8',
+    marginBottom: '40px',
+  },
+  ctaButton: {
+    backgroundColor: '#F4D03F',
+    color: '#1A2332',
+    border: 'none',
+    padding: '18px 50px',
+    borderRadius: '12px',
+    fontSize: '1.3rem',
+    fontWeight: '800',
+    cursor: 'pointer',
+    boxShadow: '0 6px 20px rgba(244, 208, 63, 0.4)',
+    transition: 'all 0.3s',
   },
   
   // Secao de Beneficios - LOJISTAS (fundo claro)
